@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon, PhotoIcon, VideoCameraIcon } from '@heroicons/react/24/solid';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
+import Image from 'next/image';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -19,11 +20,6 @@ interface FileWithPreview extends File {
 interface FileWithTitle {
   file: FileWithPreview;
   title: string;
-}
-
-interface UploadProgress {
-  loaded: number;
-  total: number;
 }
 
 const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
@@ -55,45 +51,6 @@ const generateVideoThumbnail = async (file: File): Promise<string> => {
   });
 };
 
-const uploadInChunks = async (
-  file: File,
-  onProgress: (progress: number) => void
-): Promise<string> => {
-  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-  const fileName = `${uuidv4()}.${file.name.split('.').pop()}`;
-  let uploadedChunks = 0;
-
-  for (let start = 0; start < file.size; start += CHUNK_SIZE) {
-    const chunk = file.slice(start, start + CHUNK_SIZE);
-    const chunkName = `${fileName}_${uploadedChunks}`;
-
-    // Upload chunk
-    const { error: uploadError } = await supabase.storage
-      .from('memories')
-      .upload(chunkName, chunk, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (uploadError) throw uploadError;
-    
-    uploadedChunks++;
-    const progress = (uploadedChunks / totalChunks) * 100;
-    onProgress(progress);
-  }
-
-  // Combine chunks (in real implementation, you might need a server-side function for this)
-  // For now, we'll just use the first chunk as the final file
-  const finalFileName = fileName;
-  
-  // Get public URL
-  const { data: { publicUrl } } = supabase.storage
-    .from('memories')
-    .getPublicUrl(finalFileName);
-
-  return publicUrl;
-};
-
 export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalProps) {
   const [files, setFiles] = useState<FileWithTitle[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -111,11 +68,6 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const calculateSpeed = (uploadedBytes: number, elapsedTime: number): string => {
-    const speed = uploadedBytes / (elapsedTime / 1000); // bytes per second
-    return formatBytes(speed) + '/s';
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,7 +156,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
           const thumbnailFileName = `thumbnail_${fileName}`;
           const thumbnailBlob = await generateVideoThumbnail(file);
           
-          const { error: thumbnailError, data: thumbnailData } = await supabase.storage
+          const { error: thumbnailError } = await supabase.storage
             .from('memories')
             .upload(thumbnailFileName, thumbnailBlob);
 
@@ -329,11 +281,14 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                       >
                         <div className="relative group">
                           {file.file.type.startsWith('image/') ? (
-                            <img
-                              src={file.file.preview}
-                              alt={file.title}
-                              className="w-full h-48 object-cover"
-                            />
+                            <div className="relative w-full h-48">
+                              <Image
+                                src={file.file.preview || ''}
+                                alt={file.title}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
                           ) : (
                             <video
                               src={file.file.preview}

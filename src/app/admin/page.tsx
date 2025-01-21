@@ -76,11 +76,10 @@ function DeleteConfirmDialog({ isOpen, onClose, onConfirm, type }: DeleteConfirm
 export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [media, setMedia] = useState<Media[]>([]);
-  const router = useRouter();
   const [photos, setPhotos] = useState<Media[]>([]);
   const [videos, setVideos] = useState<Media[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; id: string; type: 'photo' | 'video' } | null>(null);
+  const router = useRouter();
 
   const checkAdmin = useCallback(async () => {
     try {
