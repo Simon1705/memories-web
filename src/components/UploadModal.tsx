@@ -22,8 +22,6 @@ interface FileWithTitle {
   title: string;
 }
 
-const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-
 const generateVideoThumbnail = async (file: File): Promise<string> => {
   return new Promise((resolve) => {
     const video = document.createElement('video');
@@ -61,14 +59,6 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
   const uploadStartTime = useRef<number>(0);
   const totalSize = useRef<number>(0);
   const uploadedSize = useRef<number>(0);
-
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
