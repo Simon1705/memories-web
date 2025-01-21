@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
@@ -82,7 +82,7 @@ export default function AdminPage() {
   const [videos, setVideos] = useState<Media[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; id: string; type: 'photo' | 'video' } | null>(null);
 
-  const checkAdmin = async () => {
+  const checkAdmin = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -93,7 +93,7 @@ export default function AdminPage() {
       console.error('Error checking admin status:', error);
       router.push('/');
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     checkAdmin();

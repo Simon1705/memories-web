@@ -12,12 +12,13 @@ interface UploadModalProps {
   onUploadComplete: () => void;
 }
 
-interface FilePreview {
-  file: File;
-  preview: string;
-  type: 'photo' | 'video';
+interface FileWithPreview extends File {
+  preview?: string;
+}
+
+interface FileWithTitle {
+  file: FileWithPreview;
   title: string;
-  tags: string[];
 }
 
 interface UploadProgress {
@@ -94,33 +95,15 @@ const uploadInChunks = async (
 };
 
 export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalProps) {
-  const [files, setFiles] = useState<FilePreview[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [files, setFiles] = useState<FileWithTitle[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadSpeed, setUploadSpeed] = useState<string>('');
   const [remainingSize, setRemainingSize] = useState<string>('');
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const uploadStartTime = useRef<number>(0);
   const totalSize = useRef<number>(0);
   const uploadedSize = useRef<number>(0);
-
-  useEffect(() => {
-    // Fetch existing tags from the database
-    const fetchTags = async () => {
-      const { data, error } = await supabase
-        .from('memories')
-        .select('tags');
-      
-      if (!error && data) {
-        const allTags = data.flatMap(item => item.tags || []);
-        const uniqueTags = [...new Set(allTags)];
-        setAvailableTags(uniqueTags);
-      }
-    };
-    
-    fetchTags();
-  }, []);
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -137,119 +120,96 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
-    const newFiles: FilePreview[] = selectedFiles.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-      type: file.type.startsWith('image/') ? 'photo' : 'video',
-      title: file.name.split('.')[0],
-      tags: [],
-    }));
+    const newFiles: FileWithTitle[] = selectedFiles.map(file => {
+      const preview = URL.createObjectURL(file);
+      const fileWithPreview = Object.assign(file, { preview });
+      return {
+        file: fileWithPreview,
+        title: file.name.split('.')[0],
+      };
+    });
     setFiles(prev => [...prev, ...newFiles]);
   };
 
-  const removeFile = (index: number) => {
+  const handleRemoveFile = (index: number) => {
     setFiles(prev => {
       const newFiles = [...prev];
-      URL.revokeObjectURL(newFiles[index].preview);
+      if (newFiles[index].file.preview) {
+        URL.revokeObjectURL(newFiles[index].file.preview);
+      }
       newFiles.splice(index, 1);
       return newFiles;
     });
   };
 
-  const updateFileTitle = (index: number, title: string) => {
+  const handleTitleChange = (index: number, newTitle: string) => {
     setFiles(prev => {
       const newFiles = [...prev];
-      newFiles[index] = { ...newFiles[index], title };
+      newFiles[index] = { ...newFiles[index], title: newTitle };
       return newFiles;
     });
   };
 
-  const updateFileTags = (index: number, tags: string[]) => {
-    setFiles(prev => {
-      const newFiles = [...prev];
-      newFiles[index] = { ...newFiles[index], tags };
-      return newFiles;
-    });
-  };
-
-  const handleUpload = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (files.length === 0) {
-      setError('Please select files to upload');
-      return;
-    }
+    if (files.length === 0) return;
 
-    // Validate all titles
-    const emptyTitles = files.some(file => !file.title.trim());
-    if (emptyTitles) {
-      setError('Please enter titles for all files');
-      return;
-    }
-
-    setUploading(true);
-    setError('');
+    setIsUploading(true);
+    setError(null);
     setUploadProgress(0);
     uploadStartTime.current = Date.now();
     totalSize.current = files.reduce((acc, file) => acc + file.file.size, 0);
     uploadedSize.current = 0;
 
     try {
-      for (const filePreview of files) {
-        const { file, type, title, tags } = filePreview;
-        console.log('Uploading file:', { type, title, fileType: file.type });
+      for (const fileWithTitle of files) {
+        const { file, title } = fileWithTitle;
+        console.log('Uploading file:', { type: file.type, title, fileType: file.type });
 
         const fileExt = file.name.split('.').pop();
         const fileName = `${uuidv4()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        // Upload file to Supabase Storage
-        const { error: uploadError } = await supabase.storage
+        // Upload the file to Supabase Storage
+        const { error: uploadError, data: urlData } = await supabase.storage
           .from('memories')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false,
-          });
+          .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('memories')
-          .getPublicUrl(filePath);
+        if (!urlData?.path) {
+          throw new Error('Failed to get upload URL');
+        }
 
-        if (!urlData?.publicUrl) {
+        // Get the public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('memories')
+          .getPublicUrl(urlData.path);
+
+        if (!publicUrlData?.publicUrl) {
           throw new Error('Failed to get public URL');
         }
 
         let memoryData;
-        if (type === 'photo') {
+        if (file.type.startsWith('image/')) {
           memoryData = {
             title,
-            type,
-            src: urlData.publicUrl,
+            type: 'photo',
+            src: publicUrlData.publicUrl,
             thumbnail: null,
-            date: new Date().toISOString().split('T')[0],
-            created_at: new Date().toISOString(),
-            tags: tags,
+            date: new Date().toISOString(),
           };
         } else {
-          // For videos, generate and upload thumbnail
-          const thumbnailDataUrl = await generateVideoThumbnail(file);
-          const thumbnailBlob = await fetch(thumbnailDataUrl).then(r => r.blob());
-          const thumbnailFileName = `${uuidv4()}_thumb.jpg`;
+          // For videos, create a thumbnail
+          const thumbnailFileName = `thumbnail_${fileName}`;
+          const thumbnailBlob = await generateVideoThumbnail(file);
           
-          // Upload thumbnail
-          const { error: thumbnailError } = await supabase.storage
+          const { error: thumbnailError, data: thumbnailData } = await supabase.storage
             .from('memories')
-            .upload(thumbnailFileName, thumbnailBlob, {
-              contentType: 'image/jpeg',
-              cacheControl: '3600',
-              upsert: false,
-            });
+            .upload(thumbnailFileName, thumbnailBlob);
 
           if (thumbnailError) throw thumbnailError;
 
-          // Get thumbnail URL
           const { data: thumbnailUrlData } = supabase.storage
             .from('memories')
             .getPublicUrl(thumbnailFileName);
@@ -258,60 +218,42 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
             throw new Error('Failed to get thumbnail URL');
           }
 
-          // Get video duration
-          const video = document.createElement('video');
-          video.src = URL.createObjectURL(file);
-          
-          await new Promise((resolve) => {
-            video.onloadedmetadata = () => {
-              resolve(null);
-            };
-          });
-
-          const duration = video.duration;
-          const minutes = Math.floor(duration / 60);
-          const seconds = Math.floor(duration % 60);
-          const formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
           memoryData = {
             title,
-            type,
-            src: filePath, // Store just the path, not the full URL
+            type: 'video',
+            src: filePath,
             thumbnail: thumbnailUrlData.publicUrl,
-            duration: formattedDuration,
-            date: new Date().toISOString().split('T')[0],
-            created_at: new Date().toISOString(),
-            tags: tags,
+            date: new Date().toISOString(),
           };
-
-          // Clean up
-          URL.revokeObjectURL(video.src);
-          URL.revokeObjectURL(thumbnailDataUrl);
         }
 
-        // Save memory data to database
+        // Save the memory data to the database
         const { error: dbError } = await supabase
           .from('memories')
           .insert([memoryData]);
 
-        if (dbError) {
-          console.error('Database error:', dbError);
-          throw dbError;
-        }
+        if (dbError) throw dbError;
+
+        // Update progress
+        const progress = ((files.indexOf(fileWithTitle) + 1) / files.length) * 100;
+        setUploadProgress(progress);
       }
 
       // Clean up previews
-      files.forEach(file => URL.revokeObjectURL(file.preview));
+      files.forEach(file => {
+        if (file.file.preview) {
+          URL.revokeObjectURL(file.file.preview);
+        }
+      });
       
       onUploadComplete();
       onClose();
       setFiles([]);
-      setUploadProgress(0);
-    } catch (err) {
-      console.error('Error uploading files:', err);
+    } catch (error) {
+      console.error('Upload error:', error);
       setError('Error uploading files. Please try again.');
     } finally {
-      setUploading(false);
+      setIsUploading(false);
       setUploadSpeed('');
       setRemainingSize('');
     }
@@ -344,7 +286,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
               </button>
             </div>
 
-            <form onSubmit={handleUpload} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div
                   className={`border-2 border-dashed rounded-lg p-8 text-center ${
@@ -386,22 +328,22 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                         className="relative bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden"
                       >
                         <div className="relative group">
-                          {file.type === 'photo' ? (
+                          {file.file.type.startsWith('image/') ? (
                             <img
-                              src={file.preview}
+                              src={file.file.preview}
                               alt={file.title}
                               className="w-full h-48 object-cover"
                             />
                           ) : (
                             <video
-                              src={file.preview}
+                              src={file.file.preview}
                               className="w-full h-48 object-cover"
                             />
                           )}
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               type="button"
-                              onClick={() => removeFile(index)}
+                              onClick={() => handleRemoveFile(index)}
                               className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white"
                             >
                               <XMarkIcon className="w-4 h-4" />
@@ -410,57 +352,16 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                         </div>
                         <div className="p-3">
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Title for {file.type === 'photo' ? 'Photo' : 'Video'} {index + 1}
+                            Title for {file.file.type.startsWith('image/') ? 'Photo' : 'Video'} {index + 1}
                           </label>
                           <input
                             type="text"
                             value={file.title}
-                            onChange={(e) => updateFileTitle(index, e.target.value)}
+                            onChange={(e) => handleTitleChange(index, e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm mb-2"
                             placeholder="Enter title"
                             required
                           />
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Tags
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {availableTags.map((tag) => (
-                              <button
-                                key={tag}
-                                type="button"
-                                onClick={() => {
-                                  const currentTags = files[index].tags;
-                                  const newTags = currentTags.includes(tag)
-                                    ? currentTags.filter(t => t !== tag)
-                                    : [...currentTags, tag];
-                                  updateFileTags(index, newTags);
-                                }}
-                                className={`px-2 py-1 rounded-full text-sm ${
-                                  files[index].tags.includes(tag)
-                                    ? 'bg-purple-500 text-white'
-                                    : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300'
-                                }`}
-                              >
-                                {tag}
-                              </button>
-                            ))}
-                            <input
-                              type="text"
-                              placeholder="Add new tag"
-                              className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-full text-sm"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  const newTag = e.currentTarget.value.trim();
-                                  if (newTag && !files[index].tags.includes(newTag)) {
-                                    updateFileTags(index, [...files[index].tags, newTag]);
-                                    setAvailableTags(prev => [...new Set([...prev, newTag])]);
-                                    e.currentTarget.value = '';
-                                  }
-                                }
-                              }}
-                            />
-                          </div>
                         </div>
                       </div>
                     ))}
@@ -472,7 +373,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                 <p className="text-sm text-red-500">{error}</p>
               )}
 
-              {uploading && (
+              {isUploading && (
                 <div className="space-y-2">
                   <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                     <div
@@ -502,10 +403,10 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                 </button>
                 <button
                   type="submit"
-                  disabled={uploading || files.length === 0}
+                  disabled={isUploading || files.length === 0}
                   className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center space-x-2"
                 >
-                  {uploading ? (
+                  {isUploading ? (
                     <>
                       <span>Uploading...</span>
                     </>

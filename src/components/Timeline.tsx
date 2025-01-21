@@ -22,57 +22,39 @@ interface TimelineProps {
   onMediaClick: (memory: Memory) => void;
 }
 
-interface TimelineGroup {
-  year: number;
-  months: {
-    month: number;
-    memories: Memory[];
-  }[];
-}
-
 export function Timeline({ memories, onMediaClick }: TimelineProps) {
-  const [timelineGroups, setTimelineGroups] = useState<TimelineGroup[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  // Group memories by year and month
+  const timelineGroups = memories.reduce((groups, memory) => {
+    const date = new Date(memory.date);
+    const year = date.getFullYear();
+    const month = date.getMonth();
 
-  useEffect(() => {
-    // Group memories by year and month
-    const groups = memories.reduce((acc, memory) => {
-      const date = new Date(memory.date);
-      const year = date.getFullYear();
-      const month = date.getMonth();
-
-      let yearGroup = acc.find(g => g.year === year);
-      if (!yearGroup) {
-        yearGroup = { year, months: [] };
-        acc.push(yearGroup);
+    const yearGroup = groups.find(g => g.year === year);
+    if (yearGroup) {
+      const monthGroup = yearGroup.months.find(m => m.month === month);
+      if (monthGroup) {
+        monthGroup.memories.push(memory);
+      } else {
+        yearGroup.months.push({ month, memories: [memory] });
       }
-
-      let monthGroup = yearGroup.months.find(m => m.month === month);
-      if (!monthGroup) {
-        monthGroup = { month, memories: [] };
-        yearGroup.months.push(monthGroup);
-      }
-
-      monthGroup.memories.push(memory);
-      return acc;
-    }, [] as TimelineGroup[]);
-
-    // Sort groups
-    groups.sort((a, b) => b.year - a.year);
-    groups.forEach(group => {
-      group.months.sort((a, b) => b.month - a.month);
-      group.months.forEach(month => {
-        month.memories.sort((a, b) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
+    } else {
+      groups.push({
+        year,
+        months: [{ month, memories: [memory] }]
       });
-    });
-
-    setTimelineGroups(groups);
-    if (groups.length > 0 && !selectedYear) {
-      setSelectedYear(groups[0].year);
     }
-  }, [memories, selectedYear]);
+    return groups;
+  }, [] as { year: number; months: { month: number; memories: Memory[] }[] }[]);
+
+  // Sort groups by year (descending) and months (descending)
+  timelineGroups.sort((a, b) => b.year - a.year);
+  timelineGroups.forEach(group => {
+    group.months.sort((a, b) => b.month - a.month);
+  });
+
+  const [selectedYear, setSelectedYear] = useState<number | null>(
+    timelineGroups[0]?.year || null
+  );
 
   const scrollToYear = (year: number) => {
     setSelectedYear(year);
@@ -83,8 +65,7 @@ export function Timeline({ memories, onMediaClick }: TimelineProps) {
   };
 
   return (
-    <div className="relative">
-      {/* Year navigation */}
+    <div className="min-h-screen pb-16">
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm py-4 mb-8">
         <div className="flex gap-2 overflow-x-auto pb-2 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {timelineGroups.map(({ year }) => (
@@ -103,7 +84,6 @@ export function Timeline({ memories, onMediaClick }: TimelineProps) {
         </div>
       </div>
 
-      {/* Timeline content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {timelineGroups.map(({ year, months }) => (
           <div key={year} id={`year-${year}`} className="mb-16">
@@ -136,10 +116,11 @@ export function Timeline({ memories, onMediaClick }: TimelineProps) {
                         </div>
                       ) : (
                         <div className="relative aspect-video">
-                          <img
+                          <Image
                             src={memory.thumbnail || ''}
                             alt={memory.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
                             <PlayIcon className="w-12 h-12 text-white drop-shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
