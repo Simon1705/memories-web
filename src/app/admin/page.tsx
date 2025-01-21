@@ -74,24 +74,31 @@ function DeleteConfirmDialog({ isOpen, onClose, onConfirm, type }: DeleteConfirm
 }
 
 export default function AdminPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [media, setMedia] = useState<Media[]>([]);
   const router = useRouter();
   const [photos, setPhotos] = useState<Media[]>([]);
   const [videos, setVideos] = useState<Media[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; id: string; type: 'photo' | 'video' } | null>(null);
+
+  const checkAdmin = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/');
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      router.push('/');
+    }
+  };
 
   useEffect(() => {
     checkAdmin();
     fetchMedia();
-  }, []);
-
-  const checkAdmin = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user?.email?.includes('admin')) {
-      router.push('/');
-    }
-  };
+  }, [checkAdmin]);
 
   const fetchMedia = async () => {
     try {
@@ -135,7 +142,7 @@ export default function AdminPage() {
       console.error('Error fetching media:', error);
       setError('Failed to load media. Please try again later.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -167,7 +174,7 @@ export default function AdminPage() {
     router.push('/');
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">

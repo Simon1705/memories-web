@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Masonry from 'react-masonry-css';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import Image from 'next/image';
-import { PlayIcon, PlusIcon, KeyIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
+import { PlayIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import { UploadModal } from '@/components/UploadModal';
 import { MediaViewer } from '@/components/MediaViewer';
 import { DeleteButton } from '@/components/DeleteButton';
@@ -506,10 +506,11 @@ export default function Home() {
                         ) : (
                           <div className="relative aspect-video group/video">
                             {/* Thumbnail Image */}
-                            <img
+                            <Image
                               src={memory.thumbnail || ''}
                               alt={memory.title}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              fill
+                              className="object-cover transition-transform duration-500 group-hover:scale-110"
                             />
                             
                             {/* Video Preview on Hover */}
