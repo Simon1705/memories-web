@@ -63,17 +63,17 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
     
-    // Add file size validation - 15MB limit
-    const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB in bytes
-    const validFiles = selectedFiles.filter(file => {
-      if (file.size > MAX_FILE_SIZE) {
-        setError(`File "${file.name}" exceeds 15MB limit`);
-        return false;
-      }
-      return true;
-    });
+    // Calculate total size including existing files
+    const MAX_TOTAL_SIZE = 15 * 1024 * 1024; // 15MB in bytes
+    const existingTotalSize = files.reduce((acc, file) => acc + file.file.size, 0);
+    const newTotalSize = selectedFiles.reduce((acc, file) => acc + file.size, 0) + existingTotalSize;
 
-    const newFiles: FileWithTitle[] = validFiles.map(file => {
+    if (newTotalSize > MAX_TOTAL_SIZE) {
+      setError(`Total file size exceeds 15MB limit. Please remove some files.`);
+      return;
+    }
+
+    const newFiles: FileWithTitle[] = selectedFiles.map(file => {
       const preview = URL.createObjectURL(file);
       const fileWithPreview = Object.assign(file, { preview });
       return {
@@ -267,8 +267,8 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                     </div>
                     <span className="text-sm text-gray-600 dark:text-gray-300">
                       {files.length > 0
-                        ? 'Click to add more files'
-                        : 'Click to select photos and videos (max 15MB per file)'}
+                        ? `Click to add more files (${(files.reduce((acc, file) => acc + file.file.size, 0) / (1024 * 1024)).toFixed(1)}MB/15MB used)`
+                        : 'Click to select photos and videos (max 15MB total)'}
                     </span>
                   </label>
                 </div>
