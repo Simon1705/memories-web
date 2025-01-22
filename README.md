@@ -33,14 +33,6 @@
 - [Headless UI](https://headlessui.com/) - UI Components
 - [Heroicons](https://heroicons.com/) - Icons
 
-## 📸 Screenshots
-
-<div align="center">
-  <img src="public/preview/light-mode.png" alt="Light Mode" width="45%" />
-  &nbsp;&nbsp;
-  <img src="public/preview/dark-mode.png" alt="Dark Mode" width="45%" />
-</div>
-
 ## ✨ Key Features Showcase
 
 ### Elegant Timeline View
@@ -65,5 +57,5 @@ Seamlessly switch between light and dark modes with smooth color transitions thr
 ---
 
 <div align="center">
-  Made  by <a href="https://github.com/Simon1705">Simon</a>
+  Made  by <a href="https://github.com/Simon1705">Simon 😎</a>
 </div>
