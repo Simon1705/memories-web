@@ -141,3 +141,10 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   @apply from-purple-600 to-pink-600;
 }
+
+/* Prevent horizontal scrolling */
+html, body {
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+}

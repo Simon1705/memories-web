@@ -268,7 +268,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                     <span className="text-sm text-gray-600 dark:text-gray-300">
                       {files.length > 0
                         ? `Click to add more files (${(files.reduce((acc, file) => acc + file.file.size, 0) / (1024 * 1024)).toFixed(1)}MB/15MB used)`
-                        : 'Click to select photos and videos (max 15MB total)'}
+                        : 'Click to select photos or videos (max 15MB total)'}
                     </span>
                   </label>
                 </div>

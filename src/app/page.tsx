@@ -34,6 +34,11 @@ const breakpointColumns = {
 
 type ViewMode = 'grid' | 'timeline';
 
+// Add type for custom animation info
+interface CustomAnimationInfo {
+  direction: number;
+}
+
 export default function Home() {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
@@ -51,12 +56,14 @@ export default function Home() {
     type: 'photo' | 'video';
     src: string;
     title: string;
+    date?: string;
+    slideDirection?: 'left' | 'right' | null;
   } | null>(null);
   const [filteredMemories, setFilteredMemories] = useState<Memory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
-  // Add preview animation state
+  // Add preview state and images
   const [previewIndex, setPreviewIndex] = useState(0);
   const previewImages = [
     '/preview/curug.jpg',
@@ -66,7 +73,34 @@ export default function Home() {
     '/preview/barudak.jpg'
   ];
 
-  // Add timer ref to store interval
+  // Add state for animation direction
+  const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
+
+  // Add preview navigation function
+  const handlePreviewNavigation = (direction: 'prev' | 'next') => {
+    // Reset auto-rotate timer
+    if (autoRotateTimer.current) {
+      clearInterval(autoRotateTimer.current);
+    }
+    
+    // Set slide direction
+    setSlideDirection(direction === 'prev' ? -1 : 1);
+    
+    // Update preview index
+    if (direction === 'prev') {
+      setPreviewIndex((prev) => (prev - 1 + previewImages.length) % previewImages.length);
+    } else {
+      setPreviewIndex((prev) => (prev + 1) % previewImages.length);
+    }
+
+    // Start new timer
+    autoRotateTimer.current = setInterval(() => {
+      setSlideDirection(1);
+      setPreviewIndex((prev) => (prev + 1) % previewImages.length);
+    }, 3000);
+  };
+
+  // Auto-rotate timer ref
   const autoRotateTimer = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
@@ -124,25 +158,6 @@ export default function Home() {
     };
   }, [previewImages.length]);
 
-  // Function to handle manual navigation
-  const handlePreviewNavigation = (direction: 'prev' | 'next') => {
-    // Reset timer
-    if (autoRotateTimer.current) {
-      clearInterval(autoRotateTimer.current);
-    }
-    autoRotateTimer.current = setInterval(() => {
-      setPreviewIndex((prev) => (prev + 1) % previewImages.length);
-    }, 3000);
-
-    // Update index
-    setPreviewIndex((prev) => {
-      if (direction === 'prev') {
-        return (prev - 1 + previewImages.length) % previewImages.length;
-      }
-      return (prev + 1) % previewImages.length;
-    });
-  };
-
   const fetchMemories = async () => {
     try {
       const { data, error } = await supabase
@@ -157,7 +172,7 @@ export default function Home() {
     }
   };
 
-  const handleMediaClick = (memory: Memory) => {
+  const handleMediaClick = (memory: Memory, direction?: 'left' | 'right') => {
     console.log('Clicked memory:', memory); // Debug log
     if (!memory.src) {
       console.error('No source URL found for memory:', memory);
@@ -186,6 +201,8 @@ export default function Home() {
       type: memory.type,
       src: url,
       title: memory.title,
+      date: memory.date,
+      slideDirection: direction || null
     });
   };
 
@@ -269,6 +286,14 @@ export default function Home() {
         isOpen={!!selectedMedia}
         onClose={() => setSelectedMedia(null)}
         media={selectedMedia}
+        onNavigate={(direction) => {
+          const currentIndex = filteredMemories.findIndex(m => m.src === selectedMedia?.src);
+          if (direction === 'left' && currentIndex < filteredMemories.length - 1) {
+            handleMediaClick(filteredMemories[currentIndex + 1], 'left');
+          } else if (direction === 'right' && currentIndex > 0) {
+            handleMediaClick(filteredMemories[currentIndex - 1], 'right');
+          }
+        }}
       />
 
       <AdminLogin
@@ -285,136 +310,352 @@ export default function Home() {
       {/* Use Navbar component */}
       <Navbar onAddMemory={() => setIsUploadModalOpen(true)} />
 
-      {/* Hero section with adjusted padding */}
+      {/* Hero section with major redesign */}
       <div className="relative min-h-screen mt-16">
+        {/* Dynamic background */}
         <div className="absolute inset-0">
-          <motion.div 
-            className="absolute inset-0 bg-gradient-to-b from-purple-900/30 via-background/50 to-background"
-            animate={{
-              opacity: [0.5, 0.7, 0.5],
-            }}
-            transition={{
-              duration: 5,
-              repeat: Infinity,
-              repeatType: "reverse",
-            }}
-          />
+          <div className="absolute inset-0 bg-gradient-to-b from-purple-900/30 via-background/50 to-background" />
+          <div className="absolute inset-0 opacity-50">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: `url(${previewImages[i]})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  opacity: 0.1,
+                  filter: 'blur(50px)',
+                  transform: `scale(${1 + i * 0.1})`,
+                }}
+              />
+            ))}
+          </div>
         </div>
 
-        <div className="relative pt-2 pb-24 sm:pb-48 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen flex flex-col-reverse md:flex-row items-center justify-between gap-8 sm:gap-12">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-xl w-full md:w-auto text-center md:text-left"
-          >
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight dark:text-white text-gray-900 mb-4 sm:mb-8">
-              <span className="dark:text-white text-gray-900">Capture Your</span>{' '}
-              <span className="text-gradient">Precious Moments</span>
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl dark:text-gray-200 text-gray-600 mb-8 sm:mb-12 max-w-2xl mx-auto md:mx-0">
-              Perkara habis reset HP, semua backup hilang dan ini foto yang tersisa di PC. Boleh diupload aja yang mau mengabadikan 😃
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsUploadModalOpen(true)}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold transition-all shadow-lg hover:shadow-xl hover:opacity-90 flex items-center justify-center space-x-2"
-              >
-                <PlusIcon className="w-5 h-5" />
-                <span>Start Creating</span>
-              </motion.button>
-              <motion.a
-                href="#memories"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('memories')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-purple-600 rounded-full font-semibold hover:bg-purple-50 transition-colors shadow-lg hover:shadow-xl text-center"
-              >
-                Explore Memories
-              </motion.a>
-            </div>
-          </motion.div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-20">
+          {/* Hero Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch min-h-[600px]">
+            {/* Left Column - Text Content */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-8 py-8"
+            >
+              <div className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="inline-block"
+                >
+                  <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100">
+                    ✨ Capture memories forever
+                  </span>
+                </motion.div>
+                <motion.h1
+                  className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <span className="block dark:text-white text-gray-900">Create Your</span>
+                  <span className="block mt-2">
+                    <span className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+                      Digital Time
+                    </span>
+                    <motion.span
+                      className="inline-block ml-4 text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600"
+                      animate={{
+                        opacity: [1, 0.7, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatType: "reverse",
+                      }}
+                    >
+                      Capsule
+                    </motion.span>
+                  </span>
+                </motion.h1>
+                <motion.p
+                  className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  Perkara habis reset HP, semua backup hilang dan ini foto yang tersisa di PC. 
+                  Boleh diupload aja yang mau mengabadikan 😃
+                </motion.p>
+              </div>
 
-          {/* Preview Gallery - Make it smaller on mobile */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative w-full sm:w-[80%] md:w-full max-w-sm md:max-w-md aspect-[4/3]"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl -rotate-6 scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl rotate-3 scale-105" />
-            <AnimatePresence mode="wait">
+              {/* Action Buttons */}
               <motion.div
-                key={previewIndex}
-                initial={{ opacity: 0, scale: 0.9, rotate: -5 }}
-                animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                exit={{ opacity: 0, scale: 0.9, rotate: 5 }}
-                transition={{ duration: 0.5 }}
-                className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl"
+                className="flex flex-wrap gap-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
               >
-                <Image
-                  src={previewImages[previewIndex]}
-                  alt="Memory Preview"
-                  fill
-                  className="object-cover"
-                  priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                
-                {/* Navigation Buttons */}
-                <div className="absolute inset-y-0 left-0 flex items-center">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePreviewNavigation('prev');
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsUploadModalOpen(true)}
+                  className="group relative inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-full overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-pink-600 to-purple-600"
+                    initial={false}
+                    animate={{
+                      x: ["0%", "100%"],
                     }}
-                    className="p-2 m-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors group"
-                  >
-                    <ChevronLeftIcon className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
-                  </motion.button>
-                </div>
-                <div className="absolute inset-y-0 right-0 flex items-center">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePreviewNavigation('next');
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      repeatType: "reverse",
                     }}
-                    className="p-2 m-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors group"
-                  >
-                    <ChevronRightIcon className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
-                  </motion.button>
-                </div>
+                    style={{ opacity: 0.5 }}
+                  />
+                  <span className="relative flex items-center">
+                    <PlusIcon className="w-5 h-5 mr-2" />
+                    <span>Upload Memory</span>
+                  </span>
+                </motion.button>
 
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <div className="flex gap-2 justify-center">
-                    {previewImages.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setPreviewIndex(index)}
-                        className={`w-2 h-2 rounded-full transition-all ${
-                          index === previewIndex
-                            ? 'bg-white scale-125'
-                            : 'bg-white/50 hover:bg-white/75'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <motion.a
+                  href="#memories"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById('memories')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-purple-600 dark:text-purple-300 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <span>View Gallery</span>
+                  <motion.svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 ml-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    animate={{
+                      x: [0, 5, 0],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      repeatType: "reverse",
+                    }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </motion.svg>
+                </motion.a>
               </motion.div>
-            </AnimatePresence>
-          </motion.div>
+
+              {/* Stats */}
+              <motion.div
+                className="grid grid-cols-3 gap-6 pt-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                {[
+                  { label: 'Memories', value: memories.length },
+                  { label: 'Photos', value: memories.filter(m => m.type === 'photo').length },
+                  { label: 'Videos', value: memories.filter(m => m.type === 'video').length }
+                ].map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    className="text-center p-4 rounded-2xl bg-white/10 dark:bg-gray-800/50 backdrop-blur-sm"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <motion.div
+                      className="text-3xl font-bold text-purple-600 dark:text-purple-400"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.7 + index * 0.1 }}
+                    >
+                      {stat.value}
+                    </motion.div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </motion.div>
+
+            {/* Right Column - Preview Section */}
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="relative h-full min-h-[600px] flex items-center"
+            >
+              <div className="relative w-full" style={{ paddingBottom: '70.25%' }}> {/* 16:9 aspect ratio */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {/* Previous Image (Blurred) */}
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={previewImages[(previewIndex - 1 + previewImages.length) % previewImages.length]}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.3 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="absolute w-full h-full -left-[20%]"
+                    >
+                      <Image
+                        src={previewImages[(previewIndex - 1 + previewImages.length) % previewImages.length]}
+                        alt="Previous Preview"
+                        fill
+                        className="object-cover blur-md"
+                        priority
+                        sizes="25vw"
+                      />
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Next Image (Blurred) */}
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={previewImages[(previewIndex + 1) % previewImages.length]}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.3 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="absolute w-full h-full -right-[20%]"
+                    >
+                      <Image
+                        src={previewImages[(previewIndex + 1) % previewImages.length]}
+                        alt="Next Preview"
+                        fill
+                        className="object-cover blur-md"
+                        priority
+                        sizes="25vw"
+                      />
+                    </motion.div>
+                  </AnimatePresence>
+                  <AnimatePresence mode="wait" initial={false} custom={slideDirection}>
+                    <motion.div
+                      key={previewIndex}
+                      custom={slideDirection}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      variants={{
+                        hidden: (direction: number) => ({
+                          opacity: 0,
+                          x: direction * 100,
+                          scale: 0.9
+                        }),
+                        visible: {
+                          opacity: 1,
+                          x: 0,
+                          scale: 1
+                        },
+                        exit: (direction: number) => ({
+                          opacity: 0,
+                          x: direction * -100,
+                          scale: 0.9
+                        })
+                      }}
+                      transition={{ 
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 25,
+                        mass: 1
+                      }}
+                      className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl bg-gray-900"
+                    >
+                      <Image
+                        src={previewImages[previewIndex]}
+                        alt="Featured Preview"
+                        fill
+                        className="object-cover"
+                        priority
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
+                      <motion.div 
+                        className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                      />
+
+                      {/* Navigation Buttons */}
+                      <div className="absolute inset-y-0 -left-4 flex items-center">
+                        <motion.button
+                          whileHover={{ scale: 1.1, x: 5 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreviewNavigation('prev');
+                          }}
+                          className="p-3 m-4 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors group"
+                        >
+                          <ChevronLeftIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+                        </motion.button>
+                      </div>
+                      <div className="absolute inset-y-0 -right-4 flex items-center">
+                        <motion.button
+                          whileHover={{ scale: 1.1, x: -5 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreviewNavigation('next');
+                          }}
+                          className="p-3 m-4 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors group"
+                        >
+                          <ChevronRightIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+                        </motion.button>
+                      </div>
+
+                      {/* Preview Indicators */}
+                      <div className="absolute bottom-8 left-0 right-0">
+                        <div className="flex gap-3 justify-center">
+                          {previewImages.map((_, index) => (
+                            <motion.button
+                              key={index}
+                              onClick={() => setPreviewIndex(index)}
+                              className={`w-3 h-3 rounded-full transition-all ${
+                                index === previewIndex
+                                  ? 'bg-white scale-125'
+                                  : 'bg-white/50 hover:bg-white/75'
+                              }`}
+                              whileHover={{ scale: 1.5 }}
+                              animate={index === previewIndex ? {
+                                scale: [1, 1.2, 1],
+                                opacity: [1, 0.8, 1],
+                              } : {}}
+                              transition={{ duration: 1.5, repeat: index === previewIndex ? Infinity : 0 }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Decorative Elements */}
+              <div className="absolute -inset-4 -z-10">
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-3xl blur-3xl" />
+                <div className="absolute inset-0 bg-gradient-to-b from-purple-500/20 to-pink-500/20 rounded-3xl blur-3xl" />
+              </div>
+            </motion.div>
+          </div>
         </div>
       </div>
+
+      {/* Floating Action Button */}
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setIsUploadModalOpen(true)}
+        className="fixed bottom-8 right-8 p-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg hover:shadow-xl z-50 group"
+      >
+        <PlusIcon className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300" />
+      </motion.button>
 
       {/* Memories section with enhanced card hover effects */}
       <div id="memories" className="relative bg-background/80 backdrop-blur-sm py-24">
@@ -424,6 +665,16 @@ export default function Home() {
               Your Memories
             </h2>
             <div className="flex items-center gap-4">
+              {/* Add Memory Button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsUploadModalOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+              >
+                <PlusIcon className="w-5 h-5" />
+                <span>Add Memory</span>
+              </motion.button>
               <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
                 {(['grid', 'timeline'] as const).map((mode) => (
                   <button
@@ -491,7 +742,10 @@ export default function Home() {
                       />
                       <div 
                         className="memory-card relative overflow-hidden rounded-lg shadow-lg"
-                        onClick={() => handleMediaClick(memory)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMediaClick(memory, 'left');
+                        }}
                       >
                         {memory.type === 'photo' ? (
                           <div className="relative aspect-auto">
@@ -597,6 +851,7 @@ export default function Home() {
                       type: memory.type,
                       src: memory.src || '',
                       title: memory.title,
+                      date: memory.date
                     });
                   }}
                 />
