@@ -34,11 +34,6 @@ const breakpointColumns = {
 
 type ViewMode = 'grid' | 'timeline';
 
-// Add type for custom animation info
-interface CustomAnimationInfo {
-  direction: number;
-}
-
 export default function Home() {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
