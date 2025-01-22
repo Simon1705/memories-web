@@ -389,13 +389,13 @@ export default function Home() {
                         </motion.span>
                       </motion.div>
                       <motion.div
-                        className="relative"
+                        className="relative mb-6"
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.9, duration: 0.8 }}
                       >
                         <motion.span 
-                          className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 dark:from-purple-400 dark:via-pink-500 dark:to-purple-400"
+                          className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 dark:from-purple-400 dark:via-pink-500 dark:to-purple-400 leading-[1.2]"
                           animate={{
                             backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                           }}
@@ -422,7 +422,7 @@ export default function Home() {
                   >
                     <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-3xl blur-xl" />
                     <p className="relative text-xl text-gray-700/90 dark:text-white/90 font-light leading-relaxed p-6 backdrop-blur-sm rounded-3xl border border-white/10">
-                      Transformasi momen berhargamu menjadi kenangan digital yang abadi. Setiap cerita hidupmu tersimpan dengan indah.
+                      Ubah momen berharga menjadi kenangan digital yang abadi. Setiap cerita hidup dapat tersimpan dengan indah.
                     </p>
                   </motion.div>
 
