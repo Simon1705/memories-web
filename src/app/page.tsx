@@ -506,7 +506,7 @@ export default function Home() {
                         ) : (
                           <div className="relative aspect-video group/video">
                             {/* Thumbnail Image */}
-                            <Image
+          <Image
                               src={memory.thumbnail || ''}
                               alt={memory.title}
                               fill
