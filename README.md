@@ -1,19 +1,5 @@
 # 🌟 Mémoire - Capture Your Precious Moments
 
-<div align="center">
-  <img src="public/preview/preview.gif" alt="Mémoire Preview" width="600px" />
-  
-  <p align="center">
-    A beautiful, modern web application for storing and sharing your cherished memories
-    <br />
-    <a href="https://memoire.vercel.app">View Demo</a>
-    ·
-    <a href="https://github.com/yourusername/memoire/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/yourusername/memoire/issues">Request Feature</a>
-  </p>
-</div>
-
 ## ✨ Features
 
 - 📸 **Media Support**
@@ -69,22 +55,6 @@ Upload and view your media with ease. Supports both photos and videos with autom
 ### Theme Switching
 Seamlessly switch between light and dark modes with smooth color transitions throughout the interface.
 
-## 🎯 Roadmap
-
-- [ ] Add search functionality
-- [ ] Implement memory collections
-- [ ] Add sharing capabilities
-- [ ] Enable collaborative albums
-- [ ] Add AI-powered image tagging
-
-## 🤝 Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-## 📄 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
 ## 👏 Acknowledgments
 
 * [Next.js](https://nextjs.org/)
@@ -95,5 +65,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ---
 
 <div align="center">
-  Made with ❤️ by <a href="https://github.com/yourusername">Your Name</a>
+  Made  by <a href="https://github.com/Simon1705">Simon</a>
 </div>
