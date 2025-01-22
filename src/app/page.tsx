@@ -367,7 +367,7 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6, duration: 0.8 }}
                   >
-                    <div className="text-[120px] leading-[0.9] font-black tracking-tight">
+                    <div className="text-[80px] sm:text-[100px] md:text-[120px] leading-[0.9] font-black tracking-tight">
                       <motion.div
                         className="relative mb-4"
                         initial={{ opacity: 0, y: 50 }}
