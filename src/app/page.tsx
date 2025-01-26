@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Masonry from 'react-masonry-css';
-import { motion, useScroll, useSpring } from 'framer-motion';
+import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { PlayIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import { UploadModal } from '@/components/UploadModal';
@@ -11,7 +11,6 @@ import { DeleteButton } from '@/components/DeleteButton';
 import { AdminLogin } from '@/components/AdminLogin';
 import { supabase } from '@/lib/supabase';
 import { Timeline } from '@/components/Timeline';
-import { AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 
 interface Memory {
@@ -33,6 +32,14 @@ const breakpointColumns = {
 };
 
 type ViewMode = 'grid' | 'timeline';
+
+const previewImages = [
+  '/preview/curug.jpg',
+  '/preview/horseman.jpg', 
+  '/preview/sma.jpg',
+  '/preview/smp.jpg',
+  '/preview/barudak.jpg'
+];
 
 export default function Home() {
   const { scrollYProgress } = useScroll();
@@ -60,48 +67,90 @@ export default function Home() {
 
   // Add preview state and images
   const [previewIndex, setPreviewIndex] = useState(0);
-  const previewImages = [
-    '/preview/curug.jpg',
-    '/preview/horseman.jpg', 
-    '/preview/sma.jpg',
-    '/preview/smp.jpg',
-    '/preview/barudak.jpg'
-  ];
-
-  // Add state for animation direction
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
 
-  // Add preview navigation function
-  const handlePreviewNavigation = (direction: 'prev' | 'next') => {
-    // Reset auto-rotate timer
+  // Memoize handlers
+  const handlePreviewNavigation = useCallback((direction: 'prev' | 'next') => {
     if (autoRotateTimer.current) {
       clearInterval(autoRotateTimer.current);
     }
     
-    // Set slide direction
     setSlideDirection(direction === 'prev' ? -1 : 1);
     
-    // Update preview index
     if (direction === 'prev') {
       setPreviewIndex((prev) => (prev - 1 + previewImages.length) % previewImages.length);
     } else {
       setPreviewIndex((prev) => (prev + 1) % previewImages.length);
     }
 
-    // Start new timer
     autoRotateTimer.current = setInterval(() => {
       setSlideDirection(1);
       setPreviewIndex((prev) => (prev + 1) % previewImages.length);
     }, 3000);
-  };
+  }, []);
+
+  const handleMediaClick = useCallback((memory: Memory, direction?: 'left' | 'right') => {
+    if (!memory.src) {
+      console.error('No source URL found for memory:', memory);
+      return;
+    }
+
+    let url = memory.src;
+    if (memory.type === 'video') {
+      const { data } = supabase.storage
+        .from('memories')
+        .getPublicUrl(memory.src);
+      
+      if (data?.publicUrl) {
+        url = data.publicUrl;
+      }
+    }
+
+    setSelectedMedia({
+      type: memory.type,
+      src: url,
+      title: memory.title,
+      date: memory.date,
+      slideDirection: direction || null
+    });
+  }, []);
+
+  // Memoize filtered memories
+  const filteredMemoriesData = useMemo(() => {
+    if (!searchQuery) return memories;
+    
+    const query = searchQuery.toLowerCase();
+    return memories.filter(memory => 
+      memory.title.toLowerCase().includes(query)
+    );
+  }, [memories, searchQuery]);
 
   // Auto-rotate timer ref
   const autoRotateTimer = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  // Optimize useEffect
   useEffect(() => {
     setMounted(true);
     fetchMemories();
+
+    return () => {
+      if (autoRotateTimer.current) {
+        clearInterval(autoRotateTimer.current);
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const timer = setInterval(() => {
+      setSlideDirection(1);
+      setPreviewIndex((prev) => (prev + 1) % previewImages.length);
+    }, 3000);
+
+    autoRotateTimer.current = timer;
+    return () => clearInterval(timer);
+  }, [mounted]);
 
   useEffect(() => {
     setRotations(memories.map(() => (Math.random() - 0.5) * 15));
@@ -134,24 +183,17 @@ export default function Home() {
     setFilteredMemories(filtered);
   }, [memories, searchQuery]);
 
-  // Auto-rotate preview images
-  useEffect(() => {
-    const startTimer = () => {
-      if (autoRotateTimer.current) {
-        clearInterval(autoRotateTimer.current);
-      }
-      autoRotateTimer.current = setInterval(() => {
-        setPreviewIndex((prev) => (prev + 1) % previewImages.length);
-      }, 3000);
-    };
-
-    startTimer();
-    return () => {
-      if (autoRotateTimer.current) {
-        clearInterval(autoRotateTimer.current);
-      }
-    };
-  }, [previewImages.length]);
+  // Optimize background animations
+  const backgroundVariants = {
+    animate: {
+      background: [
+        'radial-gradient(circle at 0% 0%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
+        'radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
+        'radial-gradient(circle at 0% 100%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
+        'radial-gradient(circle at 100% 0%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
+      ],
+    }
+  };
 
   const fetchMemories = async () => {
     try {
@@ -165,40 +207,6 @@ export default function Home() {
     } catch (error) {
       console.error('Error fetching memories:', error);
     }
-  };
-
-  const handleMediaClick = (memory: Memory, direction?: 'left' | 'right') => {
-    console.log('Clicked memory:', memory); // Debug log
-    if (!memory.src) {
-      console.error('No source URL found for memory:', memory);
-      return;
-    }
-
-    // Get the direct download URL for videos
-    let url = memory.src;
-    if (memory.type === 'video') {
-      // Try to get the direct download URL
-      const { data } = supabase.storage
-        .from('memories')
-        .getPublicUrl(memory.src);
-      
-      if (data?.publicUrl) {
-        url = data.publicUrl;
-        console.log('Generated public URL:', url);
-      } else {
-        console.error('Failed to generate public URL');
-      }
-    }
-
-    console.log('Final media URL:', url); // Debug log
-
-    setSelectedMedia({
-      type: memory.type,
-      src: url,
-      title: memory.title,
-      date: memory.date,
-      slideDirection: direction || null
-    });
   };
 
   const getVideoUrl = (src: string): string => {
@@ -224,19 +232,13 @@ export default function Home() {
       {/* Title */}
       <title>Mémoire - Capture Your Precious Moments</title>
 
-      {/* Interactive background elements */}
+      {/* Optimize background elements */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-background to-pink-900/20" />
         <motion.div
           className="absolute inset-0"
-          animate={{
-            background: [
-              'radial-gradient(circle at 0% 0%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
-              'radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
-              'radial-gradient(circle at 0% 100%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
-              'radial-gradient(circle at 100% 0%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
-            ],
-          }}
+          variants={backgroundVariants}
+          animate="animate"
           transition={{
             duration: 10,
             repeat: Infinity,
@@ -246,9 +248,9 @@ export default function Home() {
         <div className="absolute inset-0 backdrop-blur-[100px]" />
       </div>
 
-      {/* Floating elements */}
+      {/* Reduce number of floating elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-5">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(10)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute w-[2px] h-[2px] bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"

@@ -56,13 +56,29 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadSpeed, setUploadSpeed] = useState<string>('');
   const [remainingSize, setRemainingSize] = useState<string>('');
+  const [isDragging, setIsDragging] = useState(false);
   const uploadStartTime = useRef<number>(0);
   const totalSize = useRef<number>(0);
   const uploadedSize = useRef<number>(0);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const processFiles = (selectedFiles: File[]) => {
     // Calculate total size including existing files
     const MAX_TOTAL_SIZE = 15 * 1024 * 1024; // 15MB in bytes
     const existingTotalSize = files.reduce((acc, file) => acc + file.file.size, 0);
@@ -82,6 +98,28 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
       };
     });
     setFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFiles = Array.from(e.dataTransfer.files).filter(file => 
+      file.type.startsWith('image/') || file.type.startsWith('video/')
+    );
+
+    if (droppedFiles.length === 0) {
+      setError('Please drop only image or video files.');
+      return;
+    }
+
+    processFiles(droppedFiles);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    processFiles(selectedFiles);
   };
 
   const handleRemoveFile = (index: number) => {
@@ -242,8 +280,16 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center ${
-                    files.length > 0 ? 'border-purple-500' : 'border-gray-300 dark:border-gray-600'
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-300 ${
+                    isDragging 
+                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' 
+                      : files.length > 0 
+                        ? 'border-purple-500' 
+                        : 'border-gray-300 dark:border-gray-600'
                   }`}
                 >
                   <input
@@ -258,18 +304,30 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                     htmlFor="file-upload"
                     className="cursor-pointer flex flex-col items-center space-y-2"
                   >
-                    <div className="p-4 rounded-full bg-purple-100 dark:bg-purple-900">
+                    <div className={`p-4 rounded-full ${
+                      isDragging 
+                        ? 'bg-purple-100 dark:bg-purple-900/40' 
+                        : 'bg-purple-100 dark:bg-purple-900'
+                    }`}>
                       {files.length > 0 ? (
                         <PhotoIcon className="w-8 h-8 text-purple-500" />
                       ) : (
                         <VideoCameraIcon className="w-8 h-8 text-purple-500" />
                       )}
                     </div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300">
-                      {files.length > 0
-                        ? `Click to add more files (${(files.reduce((acc, file) => acc + file.file.size, 0) / (1024 * 1024)).toFixed(1)}MB/15MB used)`
-                        : 'Click to select photos or videos (max 15MB total)'}
-                    </span>
+                    <div className="space-y-1">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {isDragging 
+                          ? 'Drop your files here'
+                          : files.length > 0
+                            ? `Click or drag to add more files (${(files.reduce((acc, file) => acc + file.file.size, 0) / (1024 * 1024)).toFixed(1)}MB/15MB used)`
+                            : 'Click to select or drag and drop photos/videos here'
+                        }
+                      </span>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Maximum total size: 15MB
+                      </p>
+                    </div>
                   </label>
                 </div>
 
