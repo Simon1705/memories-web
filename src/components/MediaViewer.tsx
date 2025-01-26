@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -15,10 +15,9 @@ interface MediaViewerProps {
     date?: string;
     slideDirection?: 'left' | 'right' | null;
   } | null;
-  onNavigate?: (direction: 'left' | 'right') => void;
 }
 
-export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerProps) {
+export function MediaViewer({ isOpen, onClose, media }: MediaViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Memoize handlers

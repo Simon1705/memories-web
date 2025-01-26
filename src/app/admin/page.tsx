@@ -14,14 +14,14 @@ interface Media {
   src?: string;
   thumbnail?: string;
   created_at: string;
-  type: 'photo' | 'video';
+  type: 'image' | 'video';
 }
 
 interface DeleteConfirmProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  type: 'photo' | 'video';
+  type: 'image' | 'video';
 }
 
 function DeleteConfirmDialog({ isOpen, onClose, onConfirm, type }: DeleteConfirmProps) {
@@ -78,7 +78,7 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Media[]>([]);
   const [videos, setVideos] = useState<Media[]>([]);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; id: string; type: 'photo' | 'video' } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; id: string; type: 'image' | 'video' } | null>(null);
   const router = useRouter();
 
   const checkAdmin = useCallback(async () => {
@@ -117,7 +117,7 @@ export default function AdminPage() {
       if (memoriesData) {
         const validPhotos = memoriesData.filter(item => {
           const mediaUrl = item.url || item.src;
-          return item.type === 'photo' && mediaUrl;
+          return item.type === 'image' && mediaUrl;
         }).map(item => ({
           ...item,
           url: item.url || item.src // Normalize to url field
@@ -145,7 +145,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleDelete = async (id: string, type: 'photo' | 'video') => {
+  const handleDelete = async (id: string, type: 'image' | 'video') => {
     try {
       setError(null);
       const { error: deleteError } = await supabase
@@ -157,7 +157,7 @@ export default function AdminPage() {
       if (deleteError) throw deleteError;
 
       // Update state locally instead of refetching
-      if (type === 'photo') {
+      if (type === 'image') {
         setPhotos(photos.filter(photo => photo.id !== id));
       } else {
         setVideos(videos.filter(video => video.id !== id));
@@ -197,7 +197,7 @@ export default function AdminPage() {
         key={item.id}
         className="relative group bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden"
       >
-        {item.type === 'photo' ? (
+        {item.type === 'image' ? (
           <div className="relative h-48">
             <Image
               src={item.url}
@@ -244,7 +244,7 @@ export default function AdminPage() {
             handleDelete(deleteConfirm.id, deleteConfirm.type);
           }
         }}
-        type={deleteConfirm?.type || 'photo'}
+        type={deleteConfirm?.type || 'image'}
       />
 
       <div className="container mx-auto px-4 py-8">

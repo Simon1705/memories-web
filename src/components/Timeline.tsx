@@ -8,7 +8,7 @@ import { PlayIcon } from '@heroicons/react/24/solid';
 
 interface Memory {
   id: number;
-  type: 'photo' | 'video';
+  type: 'image' | 'video';
   title: string;
   src?: string | null;
   thumbnail?: string | null;
@@ -105,7 +105,7 @@ export function Timeline({ memories, onMediaClick }: TimelineProps) {
                       onClick={() => onMediaClick(memory)}
                       className="relative group cursor-pointer rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
                     >
-                      {memory.type === 'photo' ? (
+                      {memory.type === 'image' ? (
                         <div className="relative aspect-video">
                           <Image
                             src={memory.src || ''}

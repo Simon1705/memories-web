@@ -15,7 +15,7 @@ import { Navbar } from '@/components/Navbar';
 
 interface Memory {
   id: number;
-  type: 'photo' | 'video';
+  type: 'image' | 'video';
   title: string;
   src?: string | null;
   thumbnail?: string | null;
@@ -55,7 +55,7 @@ export default function Home() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<{
-    type: 'photo' | 'video';
+    type: 'image' | 'video';
     src: string;
     title: string;
     date?: string;
@@ -114,16 +114,6 @@ export default function Home() {
       slideDirection: direction || null
     });
   }, []);
-
-  // Memoize filtered memories
-  const filteredMemoriesData = useMemo(() => {
-    if (!searchQuery) return memories;
-    
-    const query = searchQuery.toLowerCase();
-    return memories.filter(memory => 
-      memory.title.toLowerCase().includes(query)
-    );
-  }, [memories, searchQuery]);
 
   // Auto-rotate timer ref
   const autoRotateTimer = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -283,14 +273,6 @@ export default function Home() {
         isOpen={!!selectedMedia}
         onClose={() => setSelectedMedia(null)}
         media={selectedMedia}
-        onNavigate={(direction) => {
-          const currentIndex = filteredMemories.findIndex(m => m.src === selectedMedia?.src);
-          if (direction === 'left' && currentIndex < filteredMemories.length - 1) {
-            handleMediaClick(filteredMemories[currentIndex + 1], 'left');
-          } else if (direction === 'right' && currentIndex > 0) {
-            handleMediaClick(filteredMemories[currentIndex - 1], 'right');
-          }
-        }}
       />
 
       <AdminLogin
@@ -512,7 +494,7 @@ export default function Home() {
                     },
                     { 
                       label: 'Photos', 
-                      value: memories.filter(m => m.type === 'photo').length,
+                      value: memories.filter(m => m.type === 'image').length,
                       icon: (
                         <svg className="w-5 h-5 text-gray-600 dark:text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -818,7 +800,7 @@ export default function Home() {
                     >
                       <DeleteButton
                         memoryId={memory.id}
-                        filePath={memory.type === 'photo' ? memory.src! : memory.thumbnail!}
+                        filePath={memory.type === 'image' ? memory.src! : memory.thumbnail!}
                         onDelete={fetchMemories}
                       />
                       <div 
@@ -828,7 +810,7 @@ export default function Home() {
                           handleMediaClick(memory, 'left');
                         }}
                       >
-                        {memory.type === 'photo' ? (
+                        {memory.type === 'image' ? (
                           <div className="relative aspect-auto">
                             <Image
                               src={memory.src || ''}
