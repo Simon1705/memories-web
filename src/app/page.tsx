@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Masonry from 'react-masonry-css';
-import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useSpring } from 'framer-motion';
 import Image from 'next/image';
 import { PlayIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import { UploadModal } from '@/components/UploadModal';
@@ -11,11 +11,12 @@ import { DeleteButton } from '@/components/DeleteButton';
 import { AdminLogin } from '@/components/AdminLogin';
 import { supabase } from '@/lib/supabase';
 import { Timeline } from '@/components/Timeline';
+import { AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 
 interface Memory {
   id: number;
-  type: 'image' | 'video';
+  type: 'photo' | 'video';
   title: string;
   src?: string | null;
   thumbnail?: string | null;
@@ -33,14 +34,6 @@ const breakpointColumns = {
 
 type ViewMode = 'grid' | 'timeline';
 
-const previewImages = [
-  '/preview/curug.jpg',
-  '/preview/horseman.jpg', 
-  '/preview/sma.jpg',
-  '/preview/smp.jpg',
-  '/preview/barudak.jpg'
-];
-
 export default function Home() {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
@@ -55,7 +48,7 @@ export default function Home() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<{
-    type: 'image' | 'video';
+    type: 'photo' | 'video';
     src: string;
     title: string;
     date?: string;
@@ -67,80 +60,48 @@ export default function Home() {
 
   // Add preview state and images
   const [previewIndex, setPreviewIndex] = useState(0);
+  const previewImages = [
+    '/preview/curug.jpg',
+    '/preview/horseman.jpg', 
+    '/preview/sma.jpg',
+    '/preview/smp.jpg',
+    '/preview/barudak.jpg'
+  ];
+
+  // Add state for animation direction
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
 
-  // Memoize handlers
-  const handlePreviewNavigation = useCallback((direction: 'prev' | 'next') => {
+  // Add preview navigation function
+  const handlePreviewNavigation = (direction: 'prev' | 'next') => {
+    // Reset auto-rotate timer
     if (autoRotateTimer.current) {
       clearInterval(autoRotateTimer.current);
     }
     
+    // Set slide direction
     setSlideDirection(direction === 'prev' ? -1 : 1);
     
+    // Update preview index
     if (direction === 'prev') {
       setPreviewIndex((prev) => (prev - 1 + previewImages.length) % previewImages.length);
     } else {
       setPreviewIndex((prev) => (prev + 1) % previewImages.length);
     }
 
+    // Start new timer
     autoRotateTimer.current = setInterval(() => {
       setSlideDirection(1);
       setPreviewIndex((prev) => (prev + 1) % previewImages.length);
     }, 3000);
-  }, []);
-
-  const handleMediaClick = useCallback((memory: Memory, direction?: 'left' | 'right') => {
-    if (!memory.src) {
-      console.error('No source URL found for memory:', memory);
-      return;
-    }
-
-    let url = memory.src;
-    if (memory.type === 'video') {
-      const { data } = supabase.storage
-        .from('memories')
-        .getPublicUrl(memory.src);
-      
-      if (data?.publicUrl) {
-        url = data.publicUrl;
-      }
-    }
-
-    setSelectedMedia({
-      type: memory.type,
-      src: url,
-      title: memory.title,
-      date: memory.date,
-      slideDirection: direction || null
-    });
-  }, []);
+  };
 
   // Auto-rotate timer ref
   const autoRotateTimer = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  // Optimize useEffect
   useEffect(() => {
     setMounted(true);
     fetchMemories();
-
-    return () => {
-      if (autoRotateTimer.current) {
-        clearInterval(autoRotateTimer.current);
-      }
-    };
   }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    
-    const timer = setInterval(() => {
-      setSlideDirection(1);
-      setPreviewIndex((prev) => (prev + 1) % previewImages.length);
-    }, 3000);
-
-    autoRotateTimer.current = timer;
-    return () => clearInterval(timer);
-  }, [mounted]);
 
   useEffect(() => {
     setRotations(memories.map(() => (Math.random() - 0.5) * 15));
@@ -173,17 +134,24 @@ export default function Home() {
     setFilteredMemories(filtered);
   }, [memories, searchQuery]);
 
-  // Optimize background animations
-  const backgroundVariants = {
-    animate: {
-      background: [
-        'radial-gradient(circle at 0% 0%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
-        'radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
-        'radial-gradient(circle at 0% 100%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
-        'radial-gradient(circle at 100% 0%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
-      ],
-    }
-  };
+  // Auto-rotate preview images
+  useEffect(() => {
+    const startTimer = () => {
+      if (autoRotateTimer.current) {
+        clearInterval(autoRotateTimer.current);
+      }
+      autoRotateTimer.current = setInterval(() => {
+        setPreviewIndex((prev) => (prev + 1) % previewImages.length);
+      }, 3000);
+    };
+
+    startTimer();
+    return () => {
+      if (autoRotateTimer.current) {
+        clearInterval(autoRotateTimer.current);
+      }
+    };
+  }, [previewImages.length]);
 
   const fetchMemories = async () => {
     try {
@@ -197,6 +165,40 @@ export default function Home() {
     } catch (error) {
       console.error('Error fetching memories:', error);
     }
+  };
+
+  const handleMediaClick = (memory: Memory, direction?: 'left' | 'right') => {
+    console.log('Clicked memory:', memory); // Debug log
+    if (!memory.src) {
+      console.error('No source URL found for memory:', memory);
+      return;
+    }
+
+    // Get the direct download URL for videos
+    let url = memory.src;
+    if (memory.type === 'video') {
+      // Try to get the direct download URL
+      const { data } = supabase.storage
+        .from('memories')
+        .getPublicUrl(memory.src);
+      
+      if (data?.publicUrl) {
+        url = data.publicUrl;
+        console.log('Generated public URL:', url);
+      } else {
+        console.error('Failed to generate public URL');
+      }
+    }
+
+    console.log('Final media URL:', url); // Debug log
+
+    setSelectedMedia({
+      type: memory.type,
+      src: url,
+      title: memory.title,
+      date: memory.date,
+      slideDirection: direction || null
+    });
   };
 
   const getVideoUrl = (src: string): string => {
@@ -222,13 +224,19 @@ export default function Home() {
       {/* Title */}
       <title>Mémoire - Capture Your Precious Moments</title>
 
-      {/* Optimize background elements */}
+      {/* Interactive background elements */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-background to-pink-900/20" />
         <motion.div
           className="absolute inset-0"
-          variants={backgroundVariants}
-          animate="animate"
+          animate={{
+            background: [
+              'radial-gradient(circle at 0% 0%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
+              'radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
+              'radial-gradient(circle at 0% 100%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
+              'radial-gradient(circle at 100% 0%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
+            ],
+          }}
           transition={{
             duration: 10,
             repeat: Infinity,
@@ -238,9 +246,9 @@ export default function Home() {
         <div className="absolute inset-0 backdrop-blur-[100px]" />
       </div>
 
-      {/* Reduce number of floating elements */}
+      {/* Floating elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-5">
-        {[...Array(10)].map((_, i) => (
+        {[...Array(20)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute w-[2px] h-[2px] bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
@@ -273,6 +281,14 @@ export default function Home() {
         isOpen={!!selectedMedia}
         onClose={() => setSelectedMedia(null)}
         media={selectedMedia}
+        onNavigate={(direction) => {
+          const currentIndex = filteredMemories.findIndex(m => m.src === selectedMedia?.src);
+          if (direction === 'left' && currentIndex < filteredMemories.length - 1) {
+            handleMediaClick(filteredMemories[currentIndex + 1], 'left');
+          } else if (direction === 'right' && currentIndex > 0) {
+            handleMediaClick(filteredMemories[currentIndex - 1], 'right');
+          }
+        }}
       />
 
       <AdminLogin
@@ -290,7 +306,7 @@ export default function Home() {
       <Navbar onAddMemory={() => setIsUploadModalOpen(true)} />
 
       {/* Hero section with major redesign */}
-      <div className="relative min-h-screen mt-1">
+      <div className="relative min-h-screen mt-8">
         {/* Dynamic background */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-purple-900/30 via-background/50 to-background" />
@@ -343,6 +359,31 @@ export default function Home() {
 
               {/* Main Content */}
               <div className="space-y-12">
+                {/* Badge */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10"
+                >
+                  <motion.div
+                    className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center"
+                    animate={{
+                      rotate: [0, 360],
+                    }}
+                    transition={{
+                      duration: 6,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                  >
+                    <span className="text-2xl">✨</span>
+                  </motion.div>
+                  <span className="text-lg font-medium bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+                    Capture Moments
+                  </span>
+                </motion.div>
+
                 {/* Title Section */}
                 <div className="space-y-4">
                   <motion.h1 
@@ -351,7 +392,7 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6, duration: 0.8 }}
                   >
-                    <div className="text-[80px] sm:text-[100px] md:text-[120px] leading-[0.9] font-black tracking-tight">
+                    <div className="text-[120px] leading-[0.9] font-black tracking-tight">
                       <motion.div
                         className="relative mb-4"
                         initial={{ opacity: 0, y: 50 }}
@@ -359,7 +400,7 @@ export default function Home() {
                         transition={{ delay: 0.7, duration: 0.8 }}
                       >
                         <motion.span 
-                          className="block text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-white/90 dark:to-white/80 leading-[1.15]"
+                          className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-white/90 to-white/80 leading-[1.15]"
                           animate={{
                             backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                           }}
@@ -373,13 +414,13 @@ export default function Home() {
                         </motion.span>
                       </motion.div>
                       <motion.div
-                        className="relative mb-6"
+                        className="relative"
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.9, duration: 0.8 }}
                       >
                         <motion.span 
-                          className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 dark:from-purple-400 dark:via-pink-500 dark:to-purple-400 leading-[1.2]"
+                          className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-purple-400"
                           animate={{
                             backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                           }}
@@ -405,8 +446,8 @@ export default function Home() {
                     transition={{ delay: 1.2 }}
                   >
                     <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-3xl blur-xl" />
-                    <p className="relative text-xl text-gray-700/90 dark:text-white/90 font-light leading-relaxed p-6 backdrop-blur-sm rounded-3xl border border-white/10">
-                      Ubah momen berharga menjadi kenangan digital yang abadi. Setiap cerita hidup dapat tersimpan dengan indah.
+                    <p className="relative text-xl text-white/90 font-light leading-relaxed p-6 backdrop-blur-sm rounded-3xl border border-white/10">
+                      Transformasi momen berhargamu menjadi kenangan digital yang abadi. Setiap cerita hidupmu tersimpan dengan indah.
                     </p>
                   </motion.div>
 
@@ -424,7 +465,7 @@ export default function Home() {
                       transition={{ delay: 1.4 }}
                     >
                       <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/80 to-pink-600/80 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-200" />
-                      <div className="relative px-6 py-3 bg-black dark:bg-black rounded-2xl flex items-center gap-3">
+                      <div className="relative px-6 py-3 bg-black rounded-2xl flex items-center gap-3">
                         <motion.div
                           className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center"
                           animate={{
@@ -438,7 +479,7 @@ export default function Home() {
                         >
                           <PlusIcon className="w-5 h-5 text-white" />
                         </motion.div>
-                        <span className="text-base font-medium text-white dark:text-white">
+                        <span className="text-base font-medium bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
                           Create Memory
                         </span>
                       </div>
@@ -456,7 +497,7 @@ export default function Home() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 1.5 }}
                     >
-                      <span className="text-base font-medium text-gray-900 group-hover:text-gray-700 dark:text-white dark:group-hover:text-white/90">
+                      <span className="text-base font-medium text-white group-hover:text-white/90">
                         View Gallery
                       </span>
                       <motion.div
@@ -467,7 +508,7 @@ export default function Home() {
                           duration: 1.5,
                           repeat: Infinity,
                         }}
-                        className="text-gray-900 group-hover:text-gray-700 dark:text-white group-hover:text-white/90"
+                        className="text-white group-hover:text-white/90"
                       >
                         →
                       </motion.div>
@@ -483,34 +524,9 @@ export default function Home() {
                   transition={{ delay: 1.6 }}
                 >
                   {[
-                    { 
-                      label: 'Total Memories', 
-                      value: memories.length,
-                      icon: (
-                        <svg className="w-5 h-5 text-gray-600 dark:text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      )
-                    },
-                    { 
-                      label: 'Photos', 
-                      value: memories.filter(m => m.type === 'image').length,
-                      icon: (
-                        <svg className="w-5 h-5 text-gray-600 dark:text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      )
-                    },
-                    { 
-                      label: 'Videos', 
-                      value: memories.filter(m => m.type === 'video').length,
-                      icon: (
-                        <svg className="w-5 h-5 text-gray-600 dark:text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      )
-                    }
+                    { label: 'Total Memories', value: memories.length },
+                    { label: 'Photos', value: memories.filter(m => m.type === 'photo').length },
+                    { label: 'Videos', value: memories.filter(m => m.type === 'video').length }
                   ].map((stat, index) => (
                     <motion.div
                       key={stat.label}
@@ -530,15 +546,14 @@ export default function Home() {
                       />
                       <div className="relative">
                         <motion.div
-                          className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-white/90 dark:to-white/80 bg-clip-text text-transparent mb-2"
+                          className="text-4xl font-bold bg-gradient-to-r from-white via-white/90 to-white/80 bg-clip-text text-transparent mb-2"
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: 1.6 + index * 0.1 }}
                         >
                           {stat.value}
                         </motion.div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-white/60 font-medium tracking-wide uppercase">
-                          {stat.icon}
+                        <div className="text-sm text-white/60 font-medium tracking-wide uppercase">
                           {stat.label}
                         </div>
                       </div>
@@ -656,7 +671,7 @@ export default function Home() {
                           }}
                           className="p-3 m-4 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors group"
                         >
-                          <ChevronLeftIcon className="w-8 h-8 text-gray-900 group-hover:scale-110 transition-transform" />
+                          <ChevronLeftIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
                         </motion.button>
                       </div>
                       <div className="absolute inset-y-0 -right-4 flex items-center">
@@ -669,7 +684,7 @@ export default function Home() {
                           }}
                           className="p-3 m-4 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors group"
                         >
-                          <ChevronRightIcon className="w-8 h-8 text-gray-900 group-hover:scale-110 transition-transform" />
+                          <ChevronRightIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
                         </motion.button>
                       </div>
 
@@ -682,8 +697,8 @@ export default function Home() {
                               onClick={() => setPreviewIndex(index)}
                               className={`w-3 h-3 rounded-full transition-all ${
                                 index === previewIndex
-                                  ? 'bg-gray-900 scale-125'
-                                  : 'bg-gray-800 hover:bg-gray-700'
+                                  ? 'bg-white scale-125'
+                                  : 'bg-white/50 hover:bg-white/75'
                               }`}
                               whileHover={{ scale: 1.5 }}
                               animate={index === previewIndex ? {
@@ -800,7 +815,7 @@ export default function Home() {
                     >
                       <DeleteButton
                         memoryId={memory.id}
-                        filePath={memory.type === 'image' ? memory.src! : memory.thumbnail!}
+                        filePath={memory.type === 'photo' ? memory.src! : memory.thumbnail!}
                         onDelete={fetchMemories}
                       />
                       <div 
@@ -810,7 +825,7 @@ export default function Home() {
                           handleMediaClick(memory, 'left');
                         }}
                       >
-                        {memory.type === 'image' ? (
+                        {memory.type === 'photo' ? (
                           <div className="relative aspect-auto">
                             <Image
                               src={memory.src || ''}

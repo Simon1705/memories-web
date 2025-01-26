@@ -1,45 +1,45 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { XMarkIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface MediaViewerProps {
   isOpen: boolean;
   onClose: () => void;
   media: {
-    type: 'image' | 'video';
+    type: 'photo' | 'video';
     src: string;
-    title?: string;
+    title: string;
     date?: string;
     slideDirection?: 'left' | 'right' | null;
   } | null;
+  onNavigate?: (direction: 'left' | 'right') => void;
 }
 
-export function MediaViewer({ isOpen, onClose, media }: MediaViewerProps) {
-  const [isLoading, setIsLoading] = useState(true);
+export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [error, setError] = useState<string>('');
 
-  // Memoize handlers
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
+  useEffect(() => {
+    if (isOpen && media?.type === 'video' && videoRef.current) {
+      const playVideo = async () => {
+        try {
+          videoRef.current!.currentTime = 0;
+          await videoRef.current!.play();
+          setError('');
+        } catch (err) {
+          console.error('Error playing video:', err);
+          setError('Error playing video. Please try again.');
+        }
+      };
+
+      playVideo();
     }
-  }, [onClose]);
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-
-  // Reset loading state when media changes
-  useEffect(() => {
-    setIsLoading(true);
-  }, [media?.src]);
+  }, [isOpen, media]);
 
   if (!media) return null;
-
-  const { type, src, title, date, slideDirection } = media;
 
   return (
     <AnimatePresence>
@@ -48,75 +48,144 @@ export function MediaViewer({ isOpen, onClose, media }: MediaViewerProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90"
           onClick={onClose}
         >
           <motion.div
-            initial={{ 
-              opacity: 0,
-              x: slideDirection === 'left' ? 50 : slideDirection === 'right' ? -50 : 0 
-            }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ 
-              opacity: 0,
-              x: slideDirection === 'left' ? -50 : slideDirection === 'right' ? 50 : 0 
-            }}
-            transition={{ duration: 0.3 }}
-            className="relative w-full max-w-5xl mx-auto bg-transparent rounded-lg overflow-hidden"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-5xl mx-auto bg-transparent rounded-lg overflow-hidden"
           >
-            {/* Title and close button */}
-            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent">
-              <div className="flex-1">
-                {title && (
-                  <h3 className="text-lg font-medium text-white/90 px-2">
-                    {title}
+            {media.type === 'photo' ? (
+              <div className="relative w-full flex items-center justify-center">
+                <div className="relative">
+                  <motion.div
+                    key={media.src}
+                    initial={{ 
+                      x: media.slideDirection === 'right' ? -100 : media.slideDirection === 'left' ? 100 : 0,
+                      opacity: 0 
+                    }}
+                    animate={{ 
+                      x: 0,
+                      opacity: 1 
+                    }}
+                    exit={{ 
+                      x: media.slideDirection === 'right' ? 100 : media.slideDirection === 'left' ? -100 : 0,
+                      opacity: 0 
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30
+                    }}
+                  >
+                    <Image
+                      src={media.src}
+                      alt={media.title}
+                      width={1920}
+                      height={1080}
+                      className="w-auto h-auto max-h-[75vh] mx-auto object-contain rounded-lg"
+                      style={{ maxWidth: '100%' }}
+                    />
+                  </motion.div>
+                  {/* Navigation buttons */}
+                  {onNavigate && (
+                    <>
+                      <div className="absolute inset-y-0 left-0 flex items-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigate('right');
+                          }}
+                          className="p-3 m-4 rounded-full bg-black/20 hover:bg-black/40 transition-colors backdrop-blur-sm group"
+                        >
+                          <ChevronLeftIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+                        </button>
+                      </div>
+                      <div className="absolute inset-y-0 right-0 flex items-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigate('left');
+                          }}
+                          className="p-3 m-4 rounded-full bg-black/20 hover:bg-black/40 transition-colors backdrop-blur-sm group"
+                        >
+                          <ChevronRightIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {/* Close button at top right */}
+                  <div className="absolute top-4 right-4">
+                    <button
+                      onClick={onClose}
+                      className="p-1.5 rounded-full bg-black/20 hover:bg-black/40 transition-colors backdrop-blur-sm group"
+                    >
+                      <XMarkIcon className="w-5 h-5 text-white/90 group-hover:text-white" />
+                    </button>
+                  </div>
+                  {/* Title and date at bottom left */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/80 to-transparent">
+                    <h3 className="text-lg font-semibold text-white drop-shadow-lg mb-1">
+                      {media.title}
+                    </h3>
+                    {media.date && (
+                      <p className="text-sm text-white/90 drop-shadow-lg">
+                        {new Date(media.date).toLocaleDateString('id-ID', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative w-full">
+                <video
+                  ref={videoRef}
+                  src={media.src}
+                  controls
+                  playsInline
+                  autoPlay
+                  className="w-full h-auto max-h-[75vh] object-contain rounded-lg mx-auto"
+                >
+                  Your browser does not support the video tag.
+                </video>
+                {/* Close button at top right */}
+                <div className="absolute top-4 right-4">
+                  <button
+                    onClick={onClose}
+                    className="p-1.5 rounded-full bg-black/20 hover:bg-black/40 transition-colors backdrop-blur-sm group"
+                  >
+                    <XMarkIcon className="w-5 h-5 text-white/90 group-hover:text-white" />
+                  </button>
+                </div>
+                {/* Title and date at bottom left */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/80 to-transparent">
+                  <h3 className="text-lg font-semibold text-white drop-shadow-lg mb-1">
+                    {media.title}
                   </h3>
-                )}
-                {date && (
-                  <p className="text-sm text-white/70 px-2">
-                    {new Date(date).toLocaleDateString()}
-                  </p>
+                  {media.date && (
+                    <p className="text-sm text-white/90 drop-shadow-lg">
+                      {new Date(media.date).toLocaleDateString('id-ID', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  )}
+                </div>
+                {error && (
+                  <div className="absolute bottom-24 left-0 right-0 text-center bg-red-500/80 text-white py-2 px-4">
+                    {error}
+                  </div>
                 )}
               </div>
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm group"
-              >
-                <XMarkIcon className="w-5 h-5 text-white group-hover:text-white/90" />
-              </button>
-            </div>
-
-            {/* Media content */}
-            <div className="relative w-full">
-              {type === 'image' ? (
-                <div className="relative w-full" style={{ height: '80vh' }}>
-                  <Image
-                    src={src}
-                    alt={title || 'Memory'}
-                    fill
-                    className={`object-contain transition-opacity duration-300 ${
-                      isLoading ? 'opacity-0' : 'opacity-100'
-                    }`}
-                    onLoadingComplete={() => setIsLoading(false)}
-                    priority
-                    sizes="(max-width: 768px) 100vw, 80vw"
-                  />
-                </div>
-              ) : (
-                <div className="relative w-full" style={{ height: '80vh' }}>
-                  <video
-                    src={src}
-                    className="w-full h-full object-contain"
-                    controls
-                    autoPlay
-                    playsInline
-                    onLoadedData={() => setIsLoading(false)}
-                  />
-                </div>
-              )}
-            </div>
+            )}
           </motion.div>
         </motion.div>
       )}
