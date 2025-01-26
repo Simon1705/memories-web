@@ -306,7 +306,7 @@ export default function Home() {
       <Navbar onAddMemory={() => setIsUploadModalOpen(true)} />
 
       {/* Hero section with major redesign */}
-      <div className="relative min-h-screen mt-8">
+      <div className="relative min-h-screen mt-12">
         {/* Dynamic background */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-purple-900/30 via-background/50 to-background" />
@@ -328,240 +328,208 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20">
-          {/* Hero Content */}
+        {/* Content */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch min-h-[600px]">
-            {/* Left Column - Text Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-12 py-8 relative"
-            >
-              {/* Futuristic background elements */}
-              <div className="absolute inset-0 -z-10">
-                <motion.div
-                  className="absolute w-[800px] h-[800px] -top-[200px] -left-[200px]"
-                  style={{
-                    background: "conic-gradient(from 0deg at 50% 50%, rgba(168, 85, 247, 0.15) 0%, rgba(236, 72, 153, 0.15) 25%, rgba(168, 85, 247, 0.15) 50%, rgba(236, 72, 153, 0.15) 75%, rgba(168, 85, 247, 0.15) 100%)",
-                    filter: "blur(120px)"
-                  }}
-                  animate={{
-                    rotate: [0, 360],
-                  }}
-                  transition={{
-                    duration: 30,
-                    repeat: Infinity,
-                    ease: "linear"
-                  }}
-                />
-              </div>
-
-              {/* Main Content */}
-              <div className="space-y-12">
-                {/* Badge */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10"
-                >
-                  <motion.div
-                    className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center"
-                    animate={{
-                      rotate: [0, 360],
-                    }}
-                    transition={{
-                      duration: 6,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
-                  >
-                    <span className="text-2xl">✨</span>
-                  </motion.div>
-                  <span className="text-lg font-medium bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-                    Capture Moments
-                  </span>
-                </motion.div>
-
-                {/* Title Section */}
-                <div className="space-y-4">
+            {/* Left Column - Hero Content */}
+            <div className="flex flex-col justify-center space-y-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="space-y-8"
+              >
+                <div className="relative">
                   <motion.h1 
-                    className="relative"
+                    className="text-[80px] font-black leading-tight tracking-tight"
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6, duration: 0.8 }}
+                    transition={{ delay: 0.4, duration: 0.8 }}
                   >
-                    <div className="text-[120px] leading-[0.9] font-black tracking-tight">
-                      <motion.div
-                        className="relative mb-4"
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.7, duration: 0.8 }}
-                      >
-                        <motion.span 
-                          className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-white/90 to-white/80 leading-[1.15]"
-                          animate={{
-                            backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                          }}
-                          transition={{
-                            duration: 8,
-                            repeat: Infinity,
-                            ease: "linear",
-                          }}
-                        >
-                          Digital
-                        </motion.span>
-                      </motion.div>
-                      <motion.div
-                        className="relative"
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.9, duration: 0.8 }}
-                      >
-                        <motion.span 
-                          className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-purple-400"
-                          animate={{
-                            backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                          }}
-                          transition={{
-                            duration: 8,
-                            repeat: Infinity,
-                            ease: "linear",
-                          }}
-                        >
-                          Memories
-                        </motion.span>
-                      </motion.div>
-                    </div>
+                    <motion.span 
+                      className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500"
+                      animate={{
+                        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                      }}
+                      transition={{
+                        duration: 8,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                    >
+                      Digital
+                    </motion.span>
+                    <motion.span 
+                      className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500"
+                      animate={{
+                        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                      }}
+                      transition={{
+                        duration: 8,
+                        repeat: Infinity,
+                        ease: "linear",
+                        delay: 0.2,
+                      }}
+                    >
+                      Memories
+                    </motion.span>
                   </motion.h1>
-                </div>
-
-                {/* Description & Actions */}
-                <div className="space-y-8">
-                  <motion.div
-                    className="relative max-w-xl"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.2 }}
-                  >
-                    <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-3xl blur-xl" />
-                    <p className="relative text-xl text-white/90 font-light leading-relaxed p-6 backdrop-blur-sm rounded-3xl border border-white/10">
-                      Transformasi momen berhargamu menjadi kenangan digital yang abadi. Setiap cerita hidupmu tersimpan dengan indah.
-                    </p>
-                  </motion.div>
-
-                  <div className="flex items-center gap-6">
-                    <motion.button
-                      whileHover={{ 
-                        scale: 1.05,
-                        boxShadow: "0 25px 40px -12px rgba(168, 85, 247, 0.35)"
-                      }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setIsUploadModalOpen(true)}
-                      className="group relative"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 1.4 }}
-                    >
-                      <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/80 to-pink-600/80 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-200" />
-                      <div className="relative px-6 py-3 bg-black rounded-2xl flex items-center gap-3">
-                        <motion.div
-                          className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center"
-                          animate={{
-                            rotate: [0, 360],
-                          }}
-                          transition={{
-                            duration: 4,
-                            repeat: Infinity,
-                            ease: "linear"
-                          }}
-                        >
-                          <PlusIcon className="w-5 h-5 text-white" />
-                        </motion.div>
-                        <span className="text-base font-medium bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-                          Create Memory
-                        </span>
-                      </div>
-                    </motion.button>
-
-                    <motion.a
-                      href="#memories"
-                      whileHover={{ x: 10 }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        document.getElementById('memories')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className="group relative px-5 py-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 flex items-center gap-3 transition-colors"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.5 }}
-                    >
-                      <span className="text-base font-medium text-white group-hover:text-white/90">
-                        View Gallery
-                      </span>
-                      <motion.div
-                        animate={{
-                          x: [0, 5, 0],
-                        }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: Infinity,
-                        }}
-                        className="text-white group-hover:text-white/90"
-                      >
-                        →
-                      </motion.div>
-                    </motion.a>
+                  <div className="absolute -inset-4 -z-10">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-3xl blur-3xl" />
                   </div>
                 </div>
 
-                {/* Stats */}
-                <motion.div
-                  className="grid grid-cols-3 gap-6"
+                <motion.p 
+                  className="text-xl text-gray-600 dark:text-gray-300 backdrop-blur-sm border border-white/10 rounded-xl p-4 bg-white/5"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.6 }}
+                  transition={{ delay: 0.6, duration: 0.8 }}
                 >
-                  {[
-                    { label: 'Total Memories', value: memories.length },
-                    { label: 'Photos', value: memories.filter(m => m.type === 'photo').length },
-                    { label: 'Videos', value: memories.filter(m => m.type === 'video').length }
-                  ].map((stat, index) => (
+                  Create, collect, and cherish your precious moments in one beautiful place. Share your stories through photos and videos that last a lifetime.
+                </motion.p>
+              </motion.div>
+
+              {/* Action Buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
+                className="flex flex-wrap gap-4"
+              >
+                <motion.button
+                  whileHover={{ 
+                    scale: 1.05,
+                    boxShadow: "0 25px 40px -12px rgba(168, 85, 247, 0.35)"
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsUploadModalOpen(true)}
+                  className="group relative"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.4 }}
+                >
+                  <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/80 to-pink-600/80 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-200" />
+                  <div className="relative px-6 py-3 bg-black rounded-2xl flex items-center gap-3">
                     <motion.div
-                      key={stat.label}
-                      className="group relative"
-                      whileHover={{ y: -4 }}
+                      className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center"
+                      animate={{
+                        rotate: [0, 360],
+                      }}
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
                     >
-                      <motion.div
-                        className="absolute -inset-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition duration-300"
-                        animate={{
-                          scale: [1, 1.1, 1],
-                          opacity: [0, 0.5, 0],
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                        }}
-                      />
-                      <div className="relative">
-                        <motion.div
-                          className="text-4xl font-bold bg-gradient-to-r from-white via-white/90 to-white/80 bg-clip-text text-transparent mb-2"
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 1.6 + index * 0.1 }}
-                        >
-                          {stat.value}
-                        </motion.div>
-                        <div className="text-sm text-white/60 font-medium tracking-wide uppercase">
-                          {stat.label}
-                        </div>
-                      </div>
+                      <PlusIcon className="w-5 h-5 text-white" />
                     </motion.div>
-                  ))}
-                </motion.div>
-              </div>
-            </motion.div>
+                    <span className="text-base font-medium bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+                      Create Memory
+                    </span>
+                  </div>
+                </motion.button>
+
+                <motion.a
+                  href="#memories"
+                  whileHover={{ x: 10 }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById('memories')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="group relative px-5 py-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 flex items-center gap-3 transition-colors"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.5 }}
+                >
+                  <span className="text-base font-medium text-white group-hover:text-white/90">
+                    View Gallery
+                  </span>
+                  <motion.div
+                    animate={{
+                      x: [0, 5, 0],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                    }}
+                    className="text-white group-hover:text-white/90"
+                  >
+                    →
+                  </motion.div>
+                </motion.a>
+              </motion.div>
+
+              {/* Stats */}
+              <motion.div
+                className="grid grid-cols-3 gap-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+              >
+                {[
+                  { 
+                    label: 'Total Memories', 
+                    value: memories.length,
+                    icon: (
+                      <svg className="w-5 h-5 text-gray-600 dark:text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    )
+                  },
+                  { 
+                    label: 'Photos', 
+                    value: memories.filter(m => m.type === 'photo').length,
+                    icon: (
+                      <svg className="w-5 h-5 text-gray-600 dark:text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )
+                  },
+                  { 
+                    label: 'Videos', 
+                    value: memories.filter(m => m.type === 'video').length,
+                    icon: (
+                      <svg className="w-5 h-5 text-gray-600 dark:text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )
+                  }
+                ].map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    className="group relative"
+                    whileHover={{ y: -4 }}
+                  >
+                    <motion.div
+                      className="absolute -inset-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition duration-300"
+                      animate={{
+                        scale: [1, 1.1, 1],
+                        opacity: [0, 0.5, 0],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                      }}
+                    />
+                    <div className="relative">
+                      <motion.div
+                        className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-white/90 dark:to-white/80 bg-clip-text text-transparent mb-2"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 1.2 + index * 0.1 }}
+                      >
+                        {stat.value}
+                      </motion.div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-white/60 font-medium tracking-wide uppercase">
+                        {stat.icon}
+                        {stat.label}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
 
             {/* Right Column - Preview Section */}
             <motion.div
