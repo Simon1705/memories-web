@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Masonry from 'react-masonry-css';
 import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
