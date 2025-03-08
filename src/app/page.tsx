@@ -227,48 +227,6 @@ export default function Home() {
       {/* Interactive background elements */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-background to-pink-900/20" />
-        <motion.div
-          className="absolute inset-0"
-          animate={{
-            background: [
-              'radial-gradient(circle at 0% 0%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
-              'radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
-              'radial-gradient(circle at 0% 100%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
-              'radial-gradient(circle at 100% 0%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
-            ],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            repeatType: "reverse",
-          }}
-        />
-        <div className="absolute inset-0 backdrop-blur-[100px]" />
-      </div>
-
-      {/* Floating elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-5">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-[2px] h-[2px] bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
-            initial={{
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
-              scale: Math.random() * 2 + 1,
-              opacity: Math.random() * 0.5 + 0.25,
-            }}
-            animate={{
-              y: [null, Math.random() * window.innerHeight],
-              x: [null, Math.random() * window.innerWidth],
-            }}
-            transition={{
-              duration: Math.random() * 20 + 10,
-              repeat: Infinity,
-              repeatType: "reverse",
-            }}
-          />
-        ))}
       </div>
 
       <UploadModal 
@@ -333,7 +291,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch min-h-[600px]">
             {/* Left Column - Hero Content */}
             <div className="flex flex-col justify-center space-y-8">
-              <motion.div
+          <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
@@ -361,12 +319,12 @@ export default function Home() {
                     </motion.span>
                     <motion.span 
                       className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500"
-                      animate={{
+            animate={{
                         backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                      }}
-                      transition={{
+            }}
+            transition={{
                         duration: 8,
-                        repeat: Infinity,
+              repeat: Infinity,
                         ease: "linear",
                         delay: 0.2,
                       }}
@@ -377,7 +335,7 @@ export default function Home() {
                   <div className="absolute -inset-4 -z-10">
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-3xl blur-3xl" />
                   </div>
-                </div>
+        </div>
 
                 <motion.p 
                   className="text-xl text-gray-600 dark:text-gray-300 backdrop-blur-sm border border-white/10 rounded-xl p-4 bg-white/5"
@@ -390,19 +348,19 @@ export default function Home() {
               </motion.div>
 
               {/* Action Buttons */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.8 }}
                 className="flex flex-wrap gap-4"
               >
-                <motion.button
+              <motion.button
                   whileHover={{ 
                     scale: 1.05,
                     boxShadow: "0 25px 40px -12px rgba(168, 85, 247, 0.35)"
                   }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setIsUploadModalOpen(true)}
+                onClick={() => setIsUploadModalOpen(true)}
                   className="group relative"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -427,15 +385,15 @@ export default function Home() {
                       Create Memory
                     </span>
                   </div>
-                </motion.button>
+              </motion.button>
 
-                <motion.a
-                  href="#memories"
+              <motion.a
+                href="#memories"
                   whileHover={{ x: 10 }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    document.getElementById('memories')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('memories')?.scrollIntoView({ behavior: 'smooth' });
+                }}
                   className="group relative px-5 py-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 flex items-center gap-3 transition-colors"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -542,7 +500,7 @@ export default function Home() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   {/* Previous Image (Blurred) */}
                   <AnimatePresence mode="wait">
-                    <motion.div
+          <motion.div 
                       key={previewImages[(previewIndex - 1 + previewImages.length) % previewImages.length]}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 0.3 }}
@@ -562,7 +520,7 @@ export default function Home() {
                   </AnimatePresence>
 
                   {/* Next Image (Blurred) */}
-                  <AnimatePresence mode="wait">
+            <AnimatePresence mode="wait">
                     <motion.div
                       key={previewImages[(previewIndex + 1) % previewImages.length]}
                       initial={{ opacity: 0 }}
@@ -582,8 +540,8 @@ export default function Home() {
                     </motion.div>
                   </AnimatePresence>
                   <AnimatePresence mode="wait" initial={false} custom={slideDirection}>
-                    <motion.div
-                      key={previewIndex}
+              <motion.div
+                key={previewIndex}
                       custom={slideDirection}
                       initial="hidden"
                       animate="visible"
@@ -612,13 +570,13 @@ export default function Home() {
                         mass: 1
                       }}
                       className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl bg-gray-900"
-                    >
-                      <Image
-                        src={previewImages[previewIndex]}
+              >
+                <Image
+                  src={previewImages[previewIndex]}
                         alt="Featured Preview"
-                        fill
-                        className="object-cover"
-                        priority
+                  fill
+                  className="object-cover"
+                  priority
                         sizes="(max-width: 768px) 100vw, 50vw"
                       />
                       <motion.div 
@@ -627,59 +585,59 @@ export default function Home() {
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5 }}
                       />
-
-                      {/* Navigation Buttons */}
+                
+                {/* Navigation Buttons */}
                       <div className="absolute inset-y-0 -left-4 flex items-center">
-                        <motion.button
+                  <motion.button
                           whileHover={{ scale: 1.1, x: 5 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePreviewNavigation('prev');
-                          }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePreviewNavigation('prev');
+                    }}
                           className="p-3 m-4 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors group"
-                        >
+                  >
                           <ChevronLeftIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
-                        </motion.button>
-                      </div>
+                  </motion.button>
+                </div>
                       <div className="absolute inset-y-0 -right-4 flex items-center">
-                        <motion.button
+                  <motion.button
                           whileHover={{ scale: 1.1, x: -5 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePreviewNavigation('next');
-                          }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePreviewNavigation('next');
+                    }}
                           className="p-3 m-4 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors group"
-                        >
+                  >
                           <ChevronRightIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
-                        </motion.button>
-                      </div>
+                  </motion.button>
+                </div>
 
                       {/* Preview Indicators */}
                       <div className="absolute bottom-8 left-0 right-0">
                         <div className="flex gap-3 justify-center">
-                          {previewImages.map((_, index) => (
+                    {previewImages.map((_, index) => (
                             <motion.button
-                              key={index}
-                              onClick={() => setPreviewIndex(index)}
+                        key={index}
+                        onClick={() => setPreviewIndex(index)}
                               className={`w-3 h-3 rounded-full transition-all ${
-                                index === previewIndex
-                                  ? 'bg-white scale-125'
-                                  : 'bg-white/50 hover:bg-white/75'
-                              }`}
+                          index === previewIndex
+                            ? 'bg-white scale-125'
+                            : 'bg-white/50 hover:bg-white/75'
+                        }`}
                               whileHover={{ scale: 1.5 }}
                               animate={index === previewIndex ? {
                                 scale: [1, 1.2, 1],
                                 opacity: [1, 0.8, 1],
                               } : {}}
                               transition={{ duration: 1.5, repeat: index === previewIndex ? Infinity : 0 }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
+                      />
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
                 </div>
               </div>
 
@@ -688,7 +646,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-3xl blur-3xl" />
                 <div className="absolute inset-0 bg-gradient-to-b from-purple-500/20 to-pink-500/20 rounded-3xl blur-3xl" />
               </div>
-            </motion.div>
+          </motion.div>
           </div>
         </div>
       </div>
