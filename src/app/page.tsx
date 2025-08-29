@@ -107,15 +107,24 @@ export default function Home() {
   // Auto-rotate timer ref
   const autoRotateTimer = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  const fetchMemories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('memories')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      setMemories(data || []);
+    } catch (error) {
+      console.error('Error fetching memories:', error);
+    }
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     fetchMemories();
-  }, []);
-
-  // Memoize rotations to prevent recalculation
-  const rotations = useMemo(() => {
-    return memories.map(() => (Math.random() - 0.5) * 15);
-  }, [memories.length]);
+  }, [fetchMemories]);
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -163,20 +172,6 @@ export default function Home() {
       }
     };
   }, [previewImages.length]);
-
-  const fetchMemories = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('memories')
-        .select('*')
-        .order('date', { ascending: false });
-
-      if (error) throw error;
-      setMemories(data || []);
-    } catch (error) {
-      console.error('Error fetching memories:', error);
-    }
-  }, []);
 
   const handleMediaClick = useCallback((memory: Memory, direction?: 'left' | 'right') => {
     console.log('Clicked memory:', memory); // Debug log
@@ -732,7 +727,7 @@ export default function Home() {
                   className="flex -ml-4 w-auto"
                   columnClassName="pl-4 bg-clip-padding"
                 >
-                  {filteredMemories.map((memory, index) => (
+                  {filteredMemories.map((memory) => (
                     <motion.div
                       key={memory.id}
                       initial={{ opacity: 0, y: 20 }}

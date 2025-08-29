@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
@@ -15,6 +15,17 @@ interface Media {
   thumbnail?: string;
   created_at: string;
   type: 'photo' | 'video';
+}
+
+interface RawMemoryData {
+  id: string;
+  title?: string;
+  url?: string;
+  src?: string;
+  thumbnail?: string;
+  created_at: string;
+  type: 'photo' | 'video';
+  [key: string]: unknown;
 }
 
 interface DeleteConfirmProps {
@@ -115,20 +126,30 @@ export default function AdminPage() {
       }
       
       if (memoriesData) {
-        const validPhotos = memoriesData.filter((item: any) => {
+        const validPhotos: Media[] = memoriesData.filter((item: RawMemoryData) => {
           const mediaUrl = item.url || item.src;
           return item.type === 'photo' && mediaUrl;
-        }).map((item: any) => ({
-          ...item,
-          url: item.url || item.src // Normalize to url field
+        }).map((item: RawMemoryData): Media => ({
+          id: item.id,
+          title: item.title,
+          url: item.url || item.src,
+          src: item.src,
+          thumbnail: item.thumbnail,
+          created_at: item.created_at,
+          type: item.type
         }));
         
-        const validVideos = memoriesData.filter((item: any) => {
+        const validVideos: Media[] = memoriesData.filter((item: RawMemoryData) => {
           const mediaUrl = item.url || item.thumbnail;
           return item.type === 'video' && mediaUrl;
-        }).map((item: any) => ({
-          ...item,
-          url: item.url || item.thumbnail // Normalize to url field
+        }).map((item: RawMemoryData): Media => ({
+          id: item.id,
+          title: item.title,
+          url: item.url || item.thumbnail,
+          src: item.src,
+          thumbnail: item.thumbnail,
+          created_at: item.created_at,
+          type: item.type
         }));
         
         setPhotos(validPhotos);
@@ -172,17 +193,6 @@ export default function AdminPage() {
     await supabase.auth.signOut();
     router.push('/');
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p>Loading media...</p>
-        </div>
-      </div>
-    );
-  }
 
   const renderMediaItem = useCallback((item: Media) => {
     if (!item.url) return null;
@@ -235,6 +245,17 @@ export default function AdminPage() {
       </motion.div>
     );
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p>Loading media...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
