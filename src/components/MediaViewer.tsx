@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface MediaViewerProps {
   isOpen: boolean;
@@ -22,22 +22,24 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string>('');
 
-  useEffect(() => {
-    if (isOpen && media?.type === 'video' && videoRef.current) {
-      const playVideo = async () => {
-        try {
-          videoRef.current!.currentTime = 0;
-          await videoRef.current!.play();
-          setError('');
-        } catch (err) {
-          console.error('Error playing video:', err);
-          setError('Error playing video. Please try again.');
-        }
-      };
+  const playVideo = useCallback(async () => {
+    if (!videoRef.current) return;
+    
+    try {
+      videoRef.current.currentTime = 0;
+      await videoRef.current.play();
+      setError('');
+    } catch (err) {
+      console.error('Error playing video:', err);
+      setError('Error playing video. Please try again.');
+    }
+  }, []);
 
+  useEffect(() => {
+    if (isOpen && media?.type === 'video') {
       playVideo();
     }
-  }, [isOpen, media]);
+  }, [isOpen, media, playVideo]);
 
   if (!media) return null;
 
@@ -88,6 +90,9 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                       height={1080}
                       className="w-auto h-auto max-h-[75vh] mx-auto object-contain rounded-lg"
                       style={{ maxWidth: '100%' }}
+                      quality={85}
+                      priority
+                      sizes="100vw"
                     />
                   </motion.div>
                   {/* Navigation buttons */}
@@ -152,6 +157,7 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                   playsInline
                   autoPlay
                   className="w-full h-auto max-h-[75vh] object-contain rounded-lg mx-auto"
+                  preload="metadata"
                 >
                   Your browser does not support the video tag.
                 </video>

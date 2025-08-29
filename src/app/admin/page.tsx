@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
@@ -115,18 +115,18 @@ export default function AdminPage() {
       }
       
       if (memoriesData) {
-        const validPhotos = memoriesData.filter(item => {
+        const validPhotos = memoriesData.filter((item: any) => {
           const mediaUrl = item.url || item.src;
           return item.type === 'photo' && mediaUrl;
-        }).map(item => ({
+        }).map((item: any) => ({
           ...item,
           url: item.url || item.src // Normalize to url field
         }));
         
-        const validVideos = memoriesData.filter(item => {
+        const validVideos = memoriesData.filter((item: any) => {
           const mediaUrl = item.url || item.thumbnail;
           return item.type === 'video' && mediaUrl;
-        }).map(item => ({
+        }).map((item: any) => ({
           ...item,
           url: item.url || item.thumbnail // Normalize to url field
         }));
@@ -184,15 +184,15 @@ export default function AdminPage() {
     );
   }
 
-  const renderMediaItem = (item: Media) => {
+  const renderMediaItem = useCallback((item: Media) => {
     if (!item.url) return null;
 
     return (
       <motion.div
         layout
-        initial={{ opacity: 0, scale: 0.8 }}
+        initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.8 }}
+        exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.2 }}
         key={item.id}
         className="relative group bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden"
@@ -203,9 +203,10 @@ export default function AdminPage() {
               src={item.url}
               alt={item.title || 'Photo'}
               fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
               className="object-cover"
-              priority
+              loading="lazy"
+              quality={75}
             />
           </div>
         ) : (
@@ -215,6 +216,7 @@ export default function AdminPage() {
               className="absolute inset-0 w-full h-full object-cover"
               controls
               preload="metadata"
+              muted
             />
           </div>
         )}
@@ -232,7 +234,7 @@ export default function AdminPage() {
         )}
       </motion.div>
     );
-  };
+  }, []);
 
   return (
     <>

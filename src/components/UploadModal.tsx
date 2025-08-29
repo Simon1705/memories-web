@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon, PhotoIcon, VideoCameraIcon } from '@heroicons/react/24/solid';
 import { supabase } from '@/lib/supabase';
@@ -22,8 +22,8 @@ interface FileWithTitle {
   title: string;
 }
 
-const generateVideoThumbnail = async (file: File): Promise<string> => {
-  return new Promise((resolve) => {
+const generateVideoThumbnail = async (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -33,18 +33,29 @@ const generateVideoThumbnail = async (file: File): Promise<string> => {
     video.currentTime = 1; // Set to 1 second to avoid black frame
     
     video.onloadeddata = () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // Convert canvas to blob
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const thumbnailFile = new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' });
-          resolve(URL.createObjectURL(thumbnailFile));
-        }
+      try {
+        canvas.width = Math.min(video.videoWidth, 800); // Limit thumbnail size
+        canvas.height = Math.min(video.videoHeight, 600);
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert canvas to blob
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(video.src);
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to generate thumbnail'));
+          }
+        }, 'image/jpeg', 0.7);
+      } catch (error) {
         URL.revokeObjectURL(video.src);
-      }, 'image/jpeg', 0.7);
+        reject(error);
+      }
+    };
+    
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error('Failed to load video'));
     };
   });
 };
@@ -78,7 +89,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
     e.stopPropagation();
   };
 
-  const processFiles = (selectedFiles: File[]) => {
+  const processFiles = useCallback((selectedFiles: File[]) => {
     // Calculate total size including existing files
     const MAX_TOTAL_SIZE = 15 * 1024 * 1024; // 15MB in bytes
     const existingTotalSize = files.reduce((acc, file) => acc + file.file.size, 0);
@@ -98,7 +109,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
       };
     });
     setFiles(prev => [...prev, ...newFiles]);
-  };
+  }, [files]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -122,7 +133,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
     processFiles(selectedFiles);
   };
 
-  const handleRemoveFile = (index: number) => {
+  const handleRemoveFile = useCallback((index: number) => {
     setFiles(prev => {
       const newFiles = [...prev];
       if (newFiles[index].file.preview) {
@@ -131,15 +142,15 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
       newFiles.splice(index, 1);
       return newFiles;
     });
-  };
+  }, []);
 
-  const handleTitleChange = (index: number, newTitle: string) => {
+  const handleTitleChange = useCallback((index: number, newTitle: string) => {
     setFiles(prev => {
       const newFiles = [...prev];
       newFiles[index] = { ...newFiles[index], title: newTitle };
       return newFiles;
     });
-  };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -346,12 +357,17 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                                 alt={file.title}
                                 fill
                                 className="object-cover"
+                                loading="lazy"
+                                quality={75}
+                                sizes="(max-width: 640px) 100vw, 50vw"
                               />
                             </div>
                           ) : (
                             <video
                               src={file.file.preview}
                               className="w-full h-48 object-cover"
+                              muted
+                              preload="metadata"
                             />
                           )}
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">

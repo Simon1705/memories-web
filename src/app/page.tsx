@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import Masonry from 'react-masonry-css';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import Image from 'next/image';
 import { PlayIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
@@ -10,9 +10,19 @@ import { MediaViewer } from '@/components/MediaViewer';
 import { DeleteButton } from '@/components/DeleteButton';
 import { AdminLogin } from '@/components/AdminLogin';
 import { supabase } from '@/lib/supabase';
-import { Timeline } from '@/components/Timeline';
 import { AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
+
+// Lazy load heavy components
+const Masonry = dynamic(() => import('react-masonry-css'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-gray-200 dark:bg-gray-800 rounded-lg h-64" />
+});
+
+const Timeline = dynamic(() => import('@/components/Timeline').then(mod => ({ default: mod.Timeline })), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-gray-200 dark:bg-gray-800 rounded-lg h-64" />
+});
 
 interface Memory {
   id: number;
@@ -43,7 +53,6 @@ export default function Home() {
   });
 
   const [mounted, setMounted] = useState(false);
-  const [rotations, setRotations] = useState<number[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
@@ -60,19 +69,19 @@ export default function Home() {
 
   // Add preview state and images
   const [previewIndex, setPreviewIndex] = useState(0);
-  const previewImages = [
+  const previewImages = useMemo(() => [
     '/preview/curug.jpg',
     '/preview/horseman.jpg', 
     '/preview/sma.jpg',
     '/preview/smp.jpg',
     '/preview/barudak.jpg'
-  ];
+  ], []);
 
   // Add state for animation direction
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
 
-  // Add preview navigation function
-  const handlePreviewNavigation = (direction: 'prev' | 'next') => {
+  // Add preview navigation function - memoized to prevent recreations
+  const handlePreviewNavigation = useCallback((direction: 'prev' | 'next') => {
     // Reset auto-rotate timer
     if (autoRotateTimer.current) {
       clearInterval(autoRotateTimer.current);
@@ -92,8 +101,8 @@ export default function Home() {
     autoRotateTimer.current = setInterval(() => {
       setSlideDirection(1);
       setPreviewIndex((prev) => (prev + 1) % previewImages.length);
-    }, 3000);
-  };
+    }, 4000);
+  }, [previewImages.length]);
 
   // Auto-rotate timer ref
   const autoRotateTimer = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -103,9 +112,10 @@ export default function Home() {
     fetchMemories();
   }, []);
 
-  useEffect(() => {
-    setRotations(memories.map(() => (Math.random() - 0.5) * 15));
-  }, [memories]);
+  // Memoize rotations to prevent recalculation
+  const rotations = useMemo(() => {
+    return memories.map(() => (Math.random() - 0.5) * 15);
+  }, [memories.length]);
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -134,15 +144,16 @@ export default function Home() {
     setFilteredMemories(filtered);
   }, [memories, searchQuery]);
 
-  // Auto-rotate preview images
+  // Auto-rotate preview images - optimized timer
   useEffect(() => {
     const startTimer = () => {
       if (autoRotateTimer.current) {
         clearInterval(autoRotateTimer.current);
       }
       autoRotateTimer.current = setInterval(() => {
+        setSlideDirection(1);
         setPreviewIndex((prev) => (prev + 1) % previewImages.length);
-      }, 3000);
+      }, 4000); // Increased interval for better performance
     };
 
     startTimer();
@@ -153,7 +164,7 @@ export default function Home() {
     };
   }, [previewImages.length]);
 
-  const fetchMemories = async () => {
+  const fetchMemories = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('memories')
@@ -165,9 +176,9 @@ export default function Home() {
     } catch (error) {
       console.error('Error fetching memories:', error);
     }
-  };
+  }, []);
 
-  const handleMediaClick = (memory: Memory, direction?: 'left' | 'right') => {
+  const handleMediaClick = useCallback((memory: Memory, direction?: 'left' | 'right') => {
     console.log('Clicked memory:', memory); // Debug log
     if (!memory.src) {
       console.error('No source URL found for memory:', memory);
@@ -199,9 +210,9 @@ export default function Home() {
       date: memory.date,
       slideDirection: direction || null
     });
-  };
+  }, []);
 
-  const getVideoUrl = (src: string): string => {
+  const getVideoUrl = useCallback((src: string): string => {
     const { data } = supabase.storage
       .from('memories')
       .getPublicUrl(src);
@@ -213,7 +224,7 @@ export default function Home() {
     
     console.error('Failed to generate preview URL');
     return src;
-  };
+  }, []);
 
   if (!mounted) {
     return null;
@@ -626,12 +637,11 @@ export default function Home() {
                             ? 'bg-white scale-125'
                             : 'bg-white/50 hover:bg-white/75'
                         }`}
-                              whileHover={{ scale: 1.5 }}
+                              whileHover={{ scale: 1.2 }}
                               animate={index === previewIndex ? {
-                                scale: [1, 1.2, 1],
-                                opacity: [1, 0.8, 1],
+                                scale: [1, 1.1, 1],
                               } : {}}
-                              transition={{ duration: 1.5, repeat: index === previewIndex ? Infinity : 0 }}
+                              transition={{ duration: 2, repeat: index === previewIndex ? Infinity : 0 }}
                       />
                     ))}
                   </div>
@@ -725,18 +735,16 @@ export default function Home() {
                   {filteredMemories.map((memory, index) => (
                     <motion.div
                       key={memory.id}
-                      initial={{ opacity: 0, y: 20, rotateZ: rotations[index] || 0 }}
+                      initial={{ opacity: 0, y: 20 }}
                       whileInView={{ 
                         opacity: 1, 
-                        y: 0, 
-                        rotateZ: 0,
+                        y: 0,
                         transition: { 
-                          duration: 0.8,
-                          ease: [0.43, 0.13, 0.23, 0.96]
+                          duration: 0.4,
+                          ease: "easeOut"
                         }
                       }}
-                      viewport={{ once: false, margin: "-100px" }}
-                      whileHover={{ scale: 1.02 }}
+                      viewport={{ once: true, margin: "-50px" }}
                       className="mb-6 group cursor-pointer relative"
                     >
                       <DeleteButton
@@ -758,7 +766,10 @@ export default function Home() {
                               alt={memory.title}
                               width={800}
                               height={600}
-                              className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
+                              className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                              loading="lazy"
+                              quality={75}
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             />
                           </div>
                         ) : (
@@ -768,7 +779,10 @@ export default function Home() {
                               src={memory.thumbnail || ''}
                               alt={memory.title}
                               fill
-                              className="object-cover transition-transform duration-500 group-hover:scale-110"
+                              className="object-cover transition-transform duration-300 group-hover:scale-105"
+                              loading="lazy"
+                              quality={75}
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             />
                             
                             {/* Video Preview on Hover */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -23,28 +23,30 @@ interface TimelineProps {
 }
 
 export function Timeline({ memories, onMediaClick }: TimelineProps) {
-  // Group memories by year and month
-  const timelineGroups = memories.reduce((groups, memory) => {
-    const date = new Date(memory.date);
-    const year = date.getFullYear();
-    const month = date.getMonth();
+  // Group memories by year and month - memoized for performance
+  const timelineGroups = useMemo(() => {
+    return memories.reduce((groups, memory) => {
+      const date = new Date(memory.date);
+      const year = date.getFullYear();
+      const month = date.getMonth();
 
-    const yearGroup = groups.find(g => g.year === year);
-    if (yearGroup) {
-      const monthGroup = yearGroup.months.find(m => m.month === month);
-      if (monthGroup) {
-        monthGroup.memories.push(memory);
+      const yearGroup = groups.find(g => g.year === year);
+      if (yearGroup) {
+        const monthGroup = yearGroup.months.find(m => m.month === month);
+        if (monthGroup) {
+          monthGroup.memories.push(memory);
+        } else {
+          yearGroup.months.push({ month, memories: [memory] });
+        }
       } else {
-        yearGroup.months.push({ month, memories: [memory] });
+        groups.push({
+          year,
+          months: [{ month, memories: [memory] }]
+        });
       }
-    } else {
-      groups.push({
-        year,
-        months: [{ month, memories: [memory] }]
-      });
-    }
-    return groups;
-  }, [] as { year: number; months: { month: number; memories: Memory[] }[] }[]);
+      return groups;
+    }, [] as { year: number; months: { month: number; memories: Memory[] }[] }[]);
+  }, [memories]);
 
   // Sort groups by year (descending) and months (descending)
   timelineGroups.sort((a, b) => b.year - a.year);
@@ -111,7 +113,10 @@ export function Timeline({ memories, onMediaClick }: TimelineProps) {
                             src={memory.src || ''}
                             alt={memory.title}
                             fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                            quality={75}
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           />
                         </div>
                       ) : (
@@ -120,7 +125,10 @@ export function Timeline({ memories, onMediaClick }: TimelineProps) {
                             src={memory.thumbnail || ''}
                             alt={memory.title}
                             fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                            quality={75}
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
                             <PlayIcon className="w-12 h-12 text-white drop-shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
