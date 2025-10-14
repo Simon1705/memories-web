@@ -21,6 +21,7 @@ interface MediaViewerProps {
 export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const playVideo = useCallback(async () => {
     if (!videoRef.current) return;
@@ -34,6 +35,14 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
       setError('Error playing video. Please try again.');
     }
   }, []);
+
+  // Reset loading state when media changes
+  useEffect(() => {
+    if (media) {
+      setIsLoading(true);
+      setError('');
+    }
+  }, [media?.src]);
 
   useEffect(() => {
     if (isOpen && media?.type === 'video') {
@@ -83,6 +92,12 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                       damping: 30
                     }}
                   >
+                    {/* Loading spinner */}
+                    {isLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 rounded-lg">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+                      </div>
+                    )}
                     <Image
                       src={media.src}
                       alt={media.title}
@@ -93,6 +108,11 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                       quality={85}
                       priority
                       sizes="100vw"
+                      onLoadingComplete={() => setIsLoading(false)}
+                      onError={() => {
+                        setIsLoading(false);
+                        setError('Failed to load image');
+                      }}
                     />
                   </motion.div>
                   {/* Close button at top right */}
@@ -126,6 +146,8 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        // Set loading state immediately when navigating
+                        setIsLoading(true);
                         onNavigate('right');
                       }}
                       className="p-3 rounded-full bg-black/20 hover:bg-black/40 transition-colors backdrop-blur-sm group"
@@ -135,6 +157,8 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        // Set loading state immediately when navigating
+                        setIsLoading(true);
                         onNavigate('left');
                       }}
                       className="p-3 rounded-full bg-black/20 hover:bg-black/40 transition-colors backdrop-blur-sm group"
