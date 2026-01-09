@@ -2,10 +2,27 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XMarkIcon, PhotoIcon, VideoCameraIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon, PhotoIcon, VideoCameraIcon, Square2StackIcon, Bars3Icon } from '@heroicons/react/24/solid';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -20,6 +37,85 @@ interface FileWithPreview extends File {
 interface FileWithTitle {
   file: FileWithPreview;
   title: string;
+  id: string;
+}
+
+// Sortable Photo Item Component
+function SortablePhotoItem({ 
+  file, 
+  index, 
+  onRemove 
+}: { 
+  file: FileWithTitle; 
+  index: number; 
+  onRemove: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: file.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 0,
+    opacity: isDragging ? 0.8 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <div className={`relative bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden ${isDragging ? 'shadow-xl ring-2 ring-purple-500' : ''}`}>
+        <div className="relative group">
+          <div className="relative w-full h-48">
+            <Image
+              src={file.file.preview || ''}
+              alt={file.title}
+              fill
+              className="object-cover"
+              loading="lazy"
+              quality={75}
+              sizes="(max-width: 640px) 100vw, 50vw"
+            />
+          </div>
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              type="button"
+              onClick={onRemove}
+              className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white"
+            >
+              <XMarkIcon className="w-4 h-4" />
+            </button>
+          </div>
+          {/* Order badge */}
+          <div className="absolute top-2 left-2 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+            <span className="text-xs text-white font-bold">{index + 1}</span>
+          </div>
+          {/* Cover badge */}
+          {index === 0 && (
+            <div className="absolute top-2 left-10 px-2 py-0.5 bg-purple-500 rounded text-xs text-white font-medium">
+              Cover
+            </div>
+          )}
+          {/* Drag handle */}
+          <div 
+            {...listeners}
+            className="absolute bottom-2 left-2 p-1.5 bg-white/90 dark:bg-gray-800/90 rounded cursor-grab active:cursor-grabbing hover:bg-white dark:hover:bg-gray-700 transition-colors"
+          >
+            <Bars3Icon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+          </div>
+        </div>
+        <div className="p-2">
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center truncate">
+            {file.file.name}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const generateVideoThumbnail = async (file: File): Promise<Blob> => {
@@ -68,6 +164,8 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
   const [uploadSpeed, setUploadSpeed] = useState<string>('');
   const [remainingSize, setRemainingSize] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
+  const [isAlbumMode, setIsAlbumMode] = useState(false);
+  const [albumTitle, setAlbumTitle] = useState('');
   const uploadStartTime = useRef<number>(0);
   const totalSize = useRef<number>(0);
   const uploadedSize = useRef<number>(0);
@@ -106,6 +204,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
       return {
         file: fileWithPreview,
         title: file.name.split('.')[0],
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       };
     });
     setFiles(prev => [...prev, ...newFiles]);
@@ -152,9 +251,31 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
     });
   }, []);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setFiles((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (files.length === 0) return;
+    if (isAlbumMode && !albumTitle.trim()) {
+      setError('Please enter album title');
+      return;
+    }
 
     setIsUploading(true);
     setError(null);
@@ -164,81 +285,125 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
     uploadedSize.current = 0;
 
     try {
-      for (const fileWithTitle of files) {
-        const { file, title } = fileWithTitle;
-        console.log('Uploading file:', { type: file.type, title, fileType: file.type });
-
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${uuidv4()}.${fileExt}`;
-        const filePath = `${fileName}`;
-
-        // Upload the file to Supabase Storage
-        const { error: uploadError, data: urlData } = await supabase.storage
-          .from('memories')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        if (!urlData?.path) {
-          throw new Error('Failed to get upload URL');
+      // Album mode: upload all photos as one memory with album_photos
+      if (isAlbumMode) {
+        const imageFiles = files.filter(f => f.file.type.startsWith('image/'));
+        if (imageFiles.length < 2) {
+          setError('Album needs at least 2 photos');
+          setIsUploading(false);
+          return;
         }
 
-        // Get the public URL
-        const { data: publicUrlData } = supabase.storage
-          .from('memories')
-          .getPublicUrl(urlData.path);
+        const albumPhotos: { src: string }[] = [];
+        let coverSrc = '';
 
-        if (!publicUrlData?.publicUrl) {
-          throw new Error('Failed to get public URL');
-        }
+        for (let i = 0; i < imageFiles.length; i++) {
+          const { file } = imageFiles[i];
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${uuidv4()}.${fileExt}`;
 
-        let memoryData;
-        if (file.type.startsWith('image/')) {
-          memoryData = {
-            title,
-            type: 'photo',
-            src: publicUrlData.publicUrl,
-            thumbnail: null,
-            date: new Date().toISOString(),
-          };
-        } else {
-          // For videos, create a thumbnail
-          const thumbnailFileName = `thumbnail_${fileName}`;
-          const thumbnailBlob = await generateVideoThumbnail(file);
-          
-          const { error: thumbnailError } = await supabase.storage
+          const { error: uploadError, data: urlData } = await supabase.storage
             .from('memories')
-            .upload(thumbnailFileName, thumbnailBlob);
+            .upload(fileName, file);
 
-          if (thumbnailError) throw thumbnailError;
+          if (uploadError) throw uploadError;
+          if (!urlData?.path) throw new Error('Failed to get upload URL');
 
-          const { data: thumbnailUrlData } = supabase.storage
+          const { data: publicUrlData } = supabase.storage
             .from('memories')
-            .getPublicUrl(thumbnailFileName);
+            .getPublicUrl(urlData.path);
 
-          if (!thumbnailUrlData?.publicUrl) {
-            throw new Error('Failed to get thumbnail URL');
+          if (!publicUrlData?.publicUrl) throw new Error('Failed to get public URL');
+
+          // First photo becomes cover
+          if (i === 0) {
+            coverSrc = publicUrlData.publicUrl;
           }
+          albumPhotos.push({ src: publicUrlData.publicUrl });
 
-          memoryData = {
-            title,
-            type: 'video',
-            src: filePath,
-            thumbnail: thumbnailUrlData.publicUrl,
-            date: new Date().toISOString(),
-          };
+          setUploadProgress(((i + 1) / imageFiles.length) * 100);
         }
 
-        // Save the memory data to the database
+        // Save album as single memory
         const { error: dbError } = await supabase
           .from('memories')
-          .insert([memoryData]);
+          .insert([{
+            title: albumTitle,
+            type: 'photo',
+            src: coverSrc,
+            thumbnail: null,
+            date: new Date().toISOString(),
+            album_photos: albumPhotos,
+          }]);
 
         if (dbError) throw dbError;
+      } else {
+        // Normal mode: upload each file separately
+        for (const fileWithTitle of files) {
+          const { file, title } = fileWithTitle;
 
-        // Update progress
-        const progress = ((files.indexOf(fileWithTitle) + 1) / files.length) * 100;
-        setUploadProgress(progress);
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${uuidv4()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { error: uploadError, data: urlData } = await supabase.storage
+            .from('memories')
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+          if (!urlData?.path) throw new Error('Failed to get upload URL');
+
+          const { data: publicUrlData } = supabase.storage
+            .from('memories')
+            .getPublicUrl(urlData.path);
+
+          if (!publicUrlData?.publicUrl) throw new Error('Failed to get public URL');
+
+          let memoryData;
+          if (file.type.startsWith('image/')) {
+            memoryData = {
+              title,
+              type: 'photo',
+              src: publicUrlData.publicUrl,
+              thumbnail: null,
+              date: new Date().toISOString(),
+              album_photos: null,
+            };
+          } else {
+            const thumbnailFileName = `thumbnail_${fileName}`;
+            const thumbnailBlob = await generateVideoThumbnail(file);
+            
+            const { error: thumbnailError } = await supabase.storage
+              .from('memories')
+              .upload(thumbnailFileName, thumbnailBlob);
+
+            if (thumbnailError) throw thumbnailError;
+
+            const { data: thumbnailUrlData } = supabase.storage
+              .from('memories')
+              .getPublicUrl(thumbnailFileName);
+
+            if (!thumbnailUrlData?.publicUrl) throw new Error('Failed to get thumbnail URL');
+
+            memoryData = {
+              title,
+              type: 'video',
+              src: filePath,
+              thumbnail: thumbnailUrlData.publicUrl,
+              date: new Date().toISOString(),
+              album_photos: null,
+            };
+          }
+
+          const { error: dbError } = await supabase
+            .from('memories')
+            .insert([memoryData]);
+
+          if (dbError) throw dbError;
+
+          const progress = ((files.indexOf(fileWithTitle) + 1) / files.length) * 100;
+          setUploadProgress(progress);
+        }
       }
 
       // Clean up previews
@@ -251,6 +416,8 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
       onUploadComplete();
       onClose();
       setFiles([]);
+      setAlbumTitle('');
+      setIsAlbumMode(false);
     } catch (error) {
       console.error('Upload error:', error);
       setError('Error uploading files. Please try again.');
@@ -289,6 +456,49 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Album Mode Toggle */}
+              <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Square2StackIcon className="w-5 h-5 text-purple-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Upload sebagai Album
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    (Gabungkan beberapa foto jadi 1 card)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAlbumMode(!isAlbumMode)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    isAlbumMode ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                      isAlbumMode ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Album Title Input */}
+              {isAlbumMode && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Judul Album
+                  </label>
+                  <input
+                    type="text"
+                    value={albumTitle}
+                    onChange={(e) => setAlbumTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="Contoh: Foto di Pantai Kuta"
+                    required={isAlbumMode}
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-1 gap-4">
                 <div
                   onDragEnter={handleDragEnter}
@@ -342,11 +552,38 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                   </label>
                 </div>
 
-                {files.length > 0 && (
+                {files.length > 0 && isAlbumMode && (
+                  <div className="mt-4">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                      <Bars3Icon className="w-4 h-4" />
+                      Drag foto untuk mengatur urutan
+                    </p>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext items={files.map(f => f.id)} strategy={rectSortingStrategy}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {files.map((file, index) => (
+                            <SortablePhotoItem
+                              key={file.id}
+                              file={file}
+                              index={index}
+                              onRemove={() => handleRemoveFile(index)}
+                            />
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                  </div>
+                )}
+
+                {files.length > 0 && !isAlbumMode && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     {files.map((file, index) => (
                       <div
-                        key={index}
+                        key={file.id}
                         className="relative bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden"
                       >
                         <div className="relative group">

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import Image from 'next/image';
-import { PlayIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
+import { PlayIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon, Square2StackIcon } from '@heroicons/react/24/solid';
 import { UploadModal } from '@/components/UploadModal';
 import { MediaViewer } from '@/components/MediaViewer';
 import { DeleteButton } from '@/components/DeleteButton';
@@ -33,6 +33,7 @@ interface Memory {
   duration?: string;
   date: string;
   tags?: string[];
+  album_photos?: { src: string }[] | null;
 }
 
 const breakpointColumns = {
@@ -62,6 +63,7 @@ export default function Home() {
     title: string;
     date?: string;
     slideDirection?: 'left' | 'right' | null;
+    album_photos?: { src: string }[] | null;
   } | null>(null);
   const [filteredMemories, setFilteredMemories] = useState<Memory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -203,7 +205,8 @@ export default function Home() {
       src: url,
       title: memory.title,
       date: memory.date,
-      slideDirection: direction || null
+      slideDirection: direction || null,
+      album_photos: memory.album_photos || null
     });
   }, []);
 
@@ -727,132 +730,154 @@ export default function Home() {
                   className="flex -ml-4 w-auto"
                   columnClassName="pl-4 bg-clip-padding"
                 >
-                  {filteredMemories.map((memory) => (
-                    <motion.div
-                      key={memory.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ 
-                        opacity: 1, 
-                        y: 0,
-                        transition: { 
-                          duration: 0.4,
-                          ease: "easeOut"
-                        }
-                      }}
-                      viewport={{ once: true, margin: "-50px" }}
-                      className="mb-6 group cursor-pointer relative"
-                    >
-                      <DeleteButton
-                        memoryId={memory.id}
-                        filePath={memory.type === 'photo' ? memory.src! : memory.thumbnail!}
-                        onDelete={fetchMemories}
-                      />
-                      <div 
-                        className="memory-card relative overflow-hidden rounded-lg shadow-lg"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMediaClick(memory, 'left');
+                  {filteredMemories.map((memory) => {
+                    const isAlbum = memory.album_photos && memory.album_photos.length > 1;
+                    
+                    return (
+                      <motion.div
+                        key={memory.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ 
+                          opacity: 1, 
+                          y: 0,
+                          transition: { 
+                            duration: 0.4,
+                            ease: "easeOut"
+                          }
                         }}
+                        viewport={{ once: true, margin: "-50px" }}
+                        className="mb-6 group cursor-pointer relative"
                       >
-                        {memory.type === 'photo' ? (
-                          <div className="relative aspect-auto">
-                            <Image
-                              src={memory.src || ''}
-                              alt={memory.title}
-                              width={800}
-                              height={600}
-                              className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                              loading="lazy"
-                              quality={75}
-                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                            />
-                          </div>
-                        ) : (
-                          <div className="relative aspect-video group/video">
-                            {/* Thumbnail Image */}
-          <Image
-                              src={memory.thumbnail || ''}
-                              alt={memory.title}
-                              fill
-                              className="object-cover transition-transform duration-300 group-hover:scale-105"
-                              loading="lazy"
-                              quality={75}
-                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                            />
-                            
-                            {/* Video Preview on Hover */}
-                            <div 
-                              className="absolute inset-0 opacity-0 group-hover/video:opacity-100 transition-opacity duration-300"
-                              onMouseEnter={(e) => {
-                                const videoElement = e.currentTarget.querySelector('video');
-                                if (videoElement && memory.src) {
-                                  const videoUrl = getVideoUrl(memory.src);
-                                  console.log('Preview video URL:', videoUrl);
-                                  videoElement.src = videoUrl;
-                                  videoElement.currentTime = 0;
-                                  videoElement.play().catch(() => {
-                                    if (videoElement) {
-                                      videoElement.muted = true;
-                                      videoElement.play().catch(console.error);
-                                    }
-                                  });
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                const videoElement = e.currentTarget.querySelector('video');
-                                if (videoElement) {
-                                  videoElement.pause();
-                                  videoElement.currentTime = 0;
-                                  videoElement.src = ''; // Clear the source
-                                }
-                              }}
-                            >
-                              <video
-                                className="w-full h-full object-cover"
-                                muted
-                                loop
-                                playsInline
-                                preload="metadata"
+                        <DeleteButton
+                          memoryId={memory.id}
+                          filePath={memory.type === 'photo' ? memory.src! : memory.thumbnail!}
+                          onDelete={fetchMemories}
+                        />
+                        
+                        {/* Stacked cards effect for albums - only on hover */}
+                        {isAlbum && (
+                          <>
+                            <div className="absolute inset-0 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 shadow-md opacity-0 scale-95 rotate-0 translate-x-0 translate-y-0 transition-all duration-300 group-hover:opacity-100 group-hover:scale-100 group-hover:rotate-6 group-hover:translate-x-3 group-hover:-translate-y-1" />
+                            <div className="absolute inset-0 bg-white dark:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-500 shadow-md opacity-0 scale-95 rotate-0 translate-x-0 translate-y-0 transition-all duration-300 group-hover:opacity-100 group-hover:scale-100 group-hover:rotate-3 group-hover:translate-x-1.5 group-hover:-translate-y-0.5" />
+                          </>
+                        )}
+                        
+                        <div 
+                          className={`memory-card relative overflow-hidden rounded-lg shadow-lg transition-all duration-300 bg-white dark:bg-gray-800 ${isAlbum ? 'group-hover:-translate-y-1 group-hover:shadow-2xl' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMediaClick(memory, 'left');
+                          }}
+                        >
+                          {memory.type === 'photo' ? (
+                            <div className="relative aspect-auto">
+                              <Image
+                                src={memory.src || ''}
+                                alt={memory.title}
+                                width={800}
+                                height={600}
+                                className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                                quality={75}
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                               />
+                              {/* Album badge */}
+                              {isAlbum && (
+                                <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-black/60 rounded-full z-10">
+                                  <Square2StackIcon className="w-4 h-4 text-white" />
+                                  <span className="text-xs text-white font-medium">
+                                    {memory.album_photos!.length}
+                                  </span>
+                                </div>
+                              )}
                             </div>
+                          ) : (
+                            <div className="relative aspect-video group/video">
+                              {/* Thumbnail Image */}
+          <Image
+                                src={memory.thumbnail || ''}
+                                alt={memory.title}
+                                fill
+                                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                                quality={75}
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                              />
+                              
+                              {/* Video Preview on Hover */}
+                              <div 
+                                className="absolute inset-0 opacity-0 group-hover/video:opacity-100 transition-opacity duration-300"
+                                onMouseEnter={(e) => {
+                                  const videoElement = e.currentTarget.querySelector('video');
+                                  if (videoElement && memory.src) {
+                                    const videoUrl = getVideoUrl(memory.src);
+                                    console.log('Preview video URL:', videoUrl);
+                                    videoElement.src = videoUrl;
+                                    videoElement.currentTime = 0;
+                                    videoElement.play().catch(() => {
+                                      if (videoElement) {
+                                        videoElement.muted = true;
+                                        videoElement.play().catch(console.error);
+                                      }
+                                    });
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  const videoElement = e.currentTarget.querySelector('video');
+                                  if (videoElement) {
+                                    videoElement.pause();
+                                    videoElement.currentTime = 0;
+                                    videoElement.src = ''; // Clear the source
+                                  }
+                                }}
+                              >
+                                <video
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  loop
+                                  playsInline
+                                  preload="metadata"
+                                />
+                              </div>
 
-                            {/* Play Icon */}
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                              <PlayIcon className="w-16 h-16 text-white drop-shadow-lg" />
+                              {/* Play Icon */}
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <PlayIcon className="w-16 h-16 text-white drop-shadow-lg" />
+                              </div>
+
+                              {/* Duration Badge */}
+                              {memory.duration && (
+                                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/75 rounded text-white text-sm z-10">
+                                  {memory.duration}
+                                </div>
+                              )}
                             </div>
-
-                            {/* Duration Badge */}
-                            {memory.duration && (
-                              <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/75 rounded text-white text-sm z-10">
-                                {memory.duration}
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all z-10">
+                            <h3 className="text-lg font-semibold text-white">
+                              {memory.title}
+                            </h3>
+                            <p className="text-sm text-gray-200">
+                              {memory.date}
+                            </p>
+                            {memory.tags && memory.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {memory.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="px-2 py-1 text-xs bg-white/20 rounded-full text-white"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
                               </div>
                             )}
                           </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all z-10">
-                          <h3 className="text-lg font-semibold text-white">
-                            {memory.title}
-                          </h3>
-                          <p className="text-sm text-gray-200">
-                            {memory.date}
-                          </p>
-                          {memory.tags && memory.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {memory.tags.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="px-2 py-1 text-xs bg-white/20 rounded-full text-white"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </Masonry>
               )}
 

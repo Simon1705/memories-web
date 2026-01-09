@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { PlayIcon } from '@heroicons/react/24/solid';
+import { PlayIcon, Square2StackIcon } from '@heroicons/react/24/solid';
 
 interface Memory {
   id: number;
@@ -15,6 +15,7 @@ interface Memory {
   duration?: string;
   date: string;
   tags?: string[];
+  album_photos?: { src: string }[] | null;
 }
 
 interface TimelineProps {
@@ -98,71 +99,94 @@ export function Timeline({ memories, onMediaClick }: TimelineProps) {
                   {format(new Date(year, month), 'MMMM')}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {monthMemories.map((memory) => (
-                    <motion.div
-                      key={memory.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5 }}
-                      onClick={() => onMediaClick(memory)}
-                      className="relative group cursor-pointer rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
-                    >
-                      {memory.type === 'photo' ? (
-                        <div className="relative aspect-video">
-                          <Image
-                            src={memory.src || ''}
-                            alt={memory.title}
-                            fill
-                            className="object-cover transition-transform duration-300 group-hover:scale-105"
-                            loading="lazy"
-                            quality={75}
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          />
-                        </div>
-                      ) : (
-                        <div className="relative aspect-video">
-                          <Image
-                            src={memory.thumbnail || ''}
-                            alt={memory.title}
-                            fill
-                            className="object-cover transition-transform duration-300 group-hover:scale-105"
-                            loading="lazy"
-                            quality={75}
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <PlayIcon className="w-12 h-12 text-white drop-shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </div>
-                          {memory.duration && (
-                            <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/75 rounded text-white text-sm">
-                              {memory.duration}
+                  {monthMemories.map((memory) => {
+                    const isAlbum = memory.album_photos && memory.album_photos.length > 1;
+                    
+                    return (
+                      <motion.div
+                        key={memory.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        onClick={() => onMediaClick(memory)}
+                        className="relative group cursor-pointer"
+                      >
+                        {/* Stacked cards effect for albums - only on hover */}
+                        {isAlbum && (
+                          <>
+                            <div className="absolute inset-0 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 shadow-md opacity-0 scale-95 rotate-0 translate-x-0 translate-y-0 transition-all duration-300 group-hover:opacity-100 group-hover:scale-100 group-hover:rotate-6 group-hover:translate-x-3 group-hover:-translate-y-1" />
+                            <div className="absolute inset-0 bg-white dark:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-500 shadow-md opacity-0 scale-95 rotate-0 translate-x-0 translate-y-0 transition-all duration-300 group-hover:opacity-100 group-hover:scale-100 group-hover:rotate-3 group-hover:translate-x-1.5 group-hover:-translate-y-0.5" />
+                          </>
+                        )}
+                        
+                        <div className={`relative rounded-lg overflow-hidden shadow-lg transition-all duration-300 bg-white dark:bg-gray-800 ${isAlbum ? 'group-hover:shadow-2xl group-hover:-translate-y-1' : 'hover:shadow-xl'}`}>
+                          {memory.type === 'photo' ? (
+                            <div className="relative aspect-video">
+                              <Image
+                                src={memory.src || ''}
+                                alt={memory.title}
+                                fill
+                                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                                quality={75}
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                              />
+                              {/* Album badge */}
+                              {isAlbum && (
+                                <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-black/60 rounded-full">
+                                  <Square2StackIcon className="w-4 h-4 text-white" />
+                                  <span className="text-xs text-white font-medium">
+                                    {memory.album_photos!.length}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="relative aspect-video">
+                              <Image
+                                src={memory.thumbnail || ''}
+                                alt={memory.title}
+                                fill
+                                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                                quality={75}
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <PlayIcon className="w-12 h-12 text-white drop-shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+                              {memory.duration && (
+                                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/75 rounded text-white text-sm">
+                                  {memory.duration}
+                                </div>
+                              )}
                             </div>
                           )}
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
-                        <h4 className="text-lg font-semibold text-white">
-                          {memory.title}
-                        </h4>
-                        <p className="text-sm text-gray-200">
-                          {format(new Date(memory.date), 'MMMM d, yyyy')}
-                        </p>
-                        {memory.tags && memory.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {memory.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="px-2 py-1 text-xs bg-white/20 rounded-full text-white"
-                              >
-                                {tag}
-                              </span>
-                            ))}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
+                            <h4 className="text-lg font-semibold text-white">
+                              {memory.title}
+                            </h4>
+                            <p className="text-sm text-gray-200">
+                              {format(new Date(memory.date), 'MMMM d, yyyy')}
+                            </p>
+                            {memory.tags && memory.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {memory.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="px-2 py-1 text-xs bg-white/20 rounded-full text-white"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
