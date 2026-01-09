@@ -25,13 +25,11 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
   const [albumIndex, setAlbumIndex] = useState(0);
   const [isImageLoading, setIsImageLoading] = useState(true);
 
-  // Reset album index and loading state when media changes
   useEffect(() => {
     setAlbumIndex(0);
     setIsImageLoading(true);
   }, [media?.src]);
 
-  // Reset loading state when album index changes
   useEffect(() => {
     setIsImageLoading(true);
   }, [albumIndex]);
@@ -40,7 +38,7 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
   const currentAlbumSrc = isAlbum ? media.album_photos![albumIndex].src : media?.src;
 
   const handleAlbumNavigate = (direction: 'prev' | 'next') => {
-    if (!isAlbum) return;
+    if (!isAlbum || !media) return;
     const total = media.album_photos!.length;
     if (direction === 'prev') {
       setAlbumIndex((prev) => (prev - 1 + total) % total);
@@ -51,7 +49,6 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
 
   const playVideo = useCallback(async () => {
     if (!videoRef.current) return;
-    
     try {
       videoRef.current.currentTime = 0;
       await videoRef.current.play();
@@ -89,14 +86,12 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
           >
             {media.type === 'photo' ? (
               <div className="relative w-full h-[75vh] flex items-center justify-center">
-                {/* Loading spinner */}
                 {isImageLoading && (
                   <div className="absolute inset-0 flex items-center justify-center z-20">
                     <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
                   </div>
                 )}
-                
-                {/* Image */}
+
                 <motion.div
                   key={currentAlbumSrc}
                   initial={{ opacity: 0 }}
@@ -117,8 +112,7 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                     onLoad={() => setIsImageLoading(false)}
                   />
                 </motion.div>
-                
-                {/* Album Navigation */}
+
                 {isAlbum && (
                   <>
                     <button
@@ -139,7 +133,6 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                     >
                       <ChevronRightIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
                     </button>
-                    {/* Album indicator dots */}
                     <div className="absolute bottom-24 left-0 right-0 flex justify-center gap-2 z-30">
                       {media.album_photos!.map((_, idx) => (
                         <button
@@ -149,14 +142,11 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                             setAlbumIndex(idx);
                           }}
                           className={`w-2.5 h-2.5 rounded-full transition-all ${
-                            idx === albumIndex 
-                              ? 'bg-white w-6' 
-                              : 'bg-white/50 hover:bg-white/75'
+                            idx === albumIndex ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/75'
                           }`}
                         />
                       ))}
                     </div>
-                    {/* Album counter */}
                     <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/60 rounded-full z-30">
                       <span className="text-sm text-white font-medium">
                         {albumIndex + 1} / {media.album_photos!.length}
@@ -165,7 +155,6 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                   </>
                 )}
 
-                {/* Regular Navigation (non-album) */}
                 {!isAlbum && onNavigate && (
                   <>
                     <button
@@ -190,16 +179,14 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                     </button>
                   </>
                 )}
-                
-                {/* Close button */}
+
                 <button
                   onClick={onClose}
                   className="absolute top-4 right-4 p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30"
                 >
                   <XMarkIcon className="w-6 h-6 text-white/90 group-hover:text-white" />
                 </button>
-                
-                {/* Title and date */}
+
                 <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent z-30">
                   <h3 className="text-lg font-semibold text-white drop-shadow-lg mb-1">
                     {media.title}
@@ -228,16 +215,14 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                 >
                   Your browser does not support the video tag.
                 </video>
-                
-                {/* Close button */}
+
                 <button
                   onClick={onClose}
                   className="absolute top-4 right-4 p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30"
                 >
                   <XMarkIcon className="w-6 h-6 text-white/90 group-hover:text-white" />
                 </button>
-                
-                {/* Title and date */}
+
                 <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
                   <h3 className="text-lg font-semibold text-white drop-shadow-lg mb-1">
                     {media.title}
@@ -252,7 +237,7 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                     </p>
                   )}
                 </div>
-                
+
                 {error && (
                   <div className="absolute bottom-24 left-0 right-0 text-center bg-red-500/80 text-white py-2 px-4 rounded">
                     {error}
