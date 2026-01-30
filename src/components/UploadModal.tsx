@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XMarkIcon, PhotoIcon, VideoCameraIcon, Square2StackIcon, Bars3Icon, CloudArrowUpIcon, CheckCircleIcon, SparklesIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon, PhotoIcon, VideoCameraIcon, Square2StackIcon, Bars3Icon, CloudArrowUpIcon, SparklesIcon } from '@heroicons/react/24/solid';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
