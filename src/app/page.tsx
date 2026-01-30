@@ -154,6 +154,9 @@ export default function Home() {
       touchMultiplier: 2,
     });
 
+    // Expose Lenis to window for modal scroll lock
+    (window as unknown as { lenis?: Lenis }).lenis = lenisRef.current;
+
     // Integrate Lenis with GSAP ScrollTrigger
     lenisRef.current.on('scroll', ScrollTrigger.update);
 
@@ -165,6 +168,7 @@ export default function Home() {
 
     return () => {
       lenisRef.current?.destroy();
+      (window as unknown as { lenis?: Lenis }).lenis = undefined;
       gsap.ticker.remove((time) => {
         lenisRef.current?.raf(time * 1000);
       });
