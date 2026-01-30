@@ -12,6 +12,14 @@ import { AdminLogin } from '@/components/AdminLogin';
 import { supabase } from '@/lib/supabase';
 import { AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
+import Lenis from 'lenis';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+// Register GSAP plugins
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 // Lazy load heavy components
 const Masonry = dynamic(() => import('react-masonry-css'), {
@@ -53,6 +61,9 @@ export default function Home() {
     restDelta: 0.001,
   });
 
+  // Lenis Smooth Scrolling ref
+  const lenisRef = useRef<Lenis | null>(null);
+
   const [mounted, setMounted] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -67,6 +78,7 @@ export default function Home() {
   } | null>(null);
   const [filteredMemories, setFilteredMemories] = useState<Memory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   // Add preview state and images
@@ -128,6 +140,37 @@ export default function Home() {
     fetchMemories();
   }, [fetchMemories]);
 
+  // Initialize Lenis Smooth Scrolling with GSAP integration
+  useEffect(() => {
+    if (!mounted) return;
+    
+    // Create Lenis instance
+    lenisRef.current = new Lenis({
+      duration: 1.2, // Smoothing duration
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Easing function
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      touchMultiplier: 2,
+    });
+
+    // Integrate Lenis with GSAP ScrollTrigger
+    lenisRef.current.on('scroll', ScrollTrigger.update);
+
+    gsap.ticker.add((time) => {
+      lenisRef.current?.raf(time * 1000);
+    });
+
+    gsap.ticker.lagSmoothing(0);
+
+    return () => {
+      lenisRef.current?.destroy();
+      gsap.ticker.remove((time) => {
+        lenisRef.current?.raf(time * 1000);
+      });
+    };
+  }, [mounted]);
+
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       // Check for Ctrl + Shift + A
@@ -141,19 +184,28 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
+  // Debounce search query - 300ms delay
   useEffect(() => {
-    // Apply search only
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    // Apply search only using debounced value
     let filtered = memories;
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    if (debouncedSearchQuery) {
+      const query = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter(memory => 
         memory.title.toLowerCase().includes(query)
       );
     }
 
     setFilteredMemories(filtered);
-  }, [memories, searchQuery]);
+  }, [memories, debouncedSearchQuery]);
 
   // Auto-rotate preview images - optimized timer
   useEffect(() => {
@@ -255,36 +307,36 @@ export default function Home() {
           } else if (direction === 'right' && currentIndex > 0) {
             handleMediaClick(filteredMemories[currentIndex - 1], 'right');
           }
-        }}
-      />
+          }}
+        />
 
-      <AdminLogin
-        isOpen={isAdminLoginOpen}
-        onClose={() => setIsAdminLoginOpen(false)}
-      />
+        <AdminLogin
+          isOpen={isAdminLoginOpen}
+          onClose={() => setIsAdminLoginOpen(false)}
+        />
 
-      {/* Progress bar */}
-      <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 transform-origin-0 z-50"
-        style={{ scaleX }}
-      />
+        {/* Progress bar */}
+        <motion.div
+          className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 transform-origin-0 z-50"
+          style={{ scaleX }}
+        />
 
-      {/* Use Navbar component */}
-      <Navbar onAddMemory={() => setIsUploadModalOpen(true)} />
+        {/* Use Navbar component */}
+        <Navbar onAddMemory={() => setIsUploadModalOpen(true)} />
 
-      {/* Hero section with major redesign */}
-      <div className="relative min-h-screen mt-12">
-        {/* Dynamic background */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-purple-900/30 via-background/50 to-background" />
-          <div className="absolute inset-0 opacity-50">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute inset-0"
-                style={{
-                  backgroundImage: `url(${previewImages[i]})`,
-                  backgroundSize: 'cover',
+        {/* Hero section with major redesign */}
+        <div className="relative min-h-screen mt-12">
+          {/* Dynamic background */}
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gradient-to-b from-purple-900/30 via-background/50 to-background" />
+            <div className="absolute inset-0 opacity-50">
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage: `url(${previewImages[i]})`,
+                    backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   opacity: 0.1,
                   filter: 'blur(50px)',

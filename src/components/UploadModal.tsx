@@ -457,25 +457,26 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Album Mode Toggle */}
-              <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Square2StackIcon className="w-5 h-5 text-purple-500" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Square2StackIcon className="w-5 h-5 text-purple-500 flex-shrink-0" />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Upload sebagai Album
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 w-full sm:w-auto">
                     (Gabungkan beberapa foto jadi 1 card)
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsAlbumMode(!isAlbumMode)}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                  className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${
                     isAlbumMode ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'
                   }`}
+                  aria-label={isAlbumMode ? 'Nonaktifkan mode album' : 'Aktifkan mode album'}
                 >
                   <span
-                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${
                       isAlbumMode ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />

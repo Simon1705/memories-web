@@ -67,6 +67,9 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
 
   if (!media) return null;
 
+  // Check if we have navigation (album or multiple photos)
+  const hasNavigation = isAlbum || onNavigate;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -74,125 +77,219 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4"
           onClick={onClose}
         >
+          {/* Close Button - Fixed Top Right */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="absolute top-4 right-4 p-2.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-md group z-[70] border border-white/30"
+          >
+            <XMarkIcon className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
+          </button>
+
+          {/* Main Content Container */}
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-5xl mx-auto"
+            className="relative w-full max-w-5xl mx-auto flex flex-col items-center"
           >
             {media.type === 'photo' ? (
-              <div className="relative w-full h-[75vh] flex items-center justify-center">
-                {isImageLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-                  </div>
-                )}
-
-                <motion.div
-                  key={currentAlbumSrc}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: isImageLoading ? 0 : 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="relative max-h-full"
-                >
-                  <Image
-                    src={currentAlbumSrc || ''}
-                    alt={media.title}
-                    width={1920}
-                    height={1080}
-                    className="w-auto h-auto max-h-[75vh] mx-auto object-contain rounded-lg"
-                    style={{ maxWidth: '100%' }}
-                    quality={85}
-                    priority
-                    sizes="100vw"
-                    onLoad={() => setIsImageLoading(false)}
-                  />
-                </motion.div>
-
-                {isAlbum && (
-                  <>
+              <>
+                {/* Image Container with Side Arrows for Desktop */}
+                <div className="relative w-full flex items-center justify-center">
+                  {/* Desktop Left Arrow */}
+                  {isAlbum && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleAlbumNavigate('prev');
                       }}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30"
+                      className="hidden sm:flex absolute left-0 sm:-left-16 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30 items-center justify-center"
                     >
                       <ChevronLeftIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAlbumNavigate('next');
-                      }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30"
-                    >
-                      <ChevronRightIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
-                    </button>
-                    <div className="absolute bottom-24 left-0 right-0 flex justify-center gap-2 z-30">
-                      {media.album_photos!.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAlbumIndex(idx);
-                          }}
-                          className={`w-2.5 h-2.5 rounded-full transition-all ${
-                            idx === albumIndex ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/75'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/60 rounded-full z-30">
-                      <span className="text-sm text-white font-medium">
-                        {albumIndex + 1} / {media.album_photos!.length}
-                      </span>
-                    </div>
-                  </>
-                )}
-
-                {!isAlbum && onNavigate && (
-                  <>
+                  )}
+                  {!isAlbum && onNavigate && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setIsImageLoading(true);
                         onNavigate('right');
                       }}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30"
+                      className="hidden sm:flex absolute left-0 sm:-left-16 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30 items-center justify-center"
                     >
                       <ChevronLeftIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
                     </button>
+                  )}
+
+                  {/* Image */}
+                  <div className={`relative ${isImageLoading ? 'min-h-[200px] min-w-[200px] sm:min-h-[300px] sm:min-w-[300px]' : ''}`}>
+                    {/* Loading Spinner - Centered with fixed size container */}
+                    {isImageLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center z-20 min-h-[200px] sm:min-h-[300px]">
+                        <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                      </div>
+                    )}
+
+                    <motion.div
+                      key={currentAlbumSrc}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: isImageLoading ? 0 : 1 }}
+                      transition={{ duration: 0.3 }}
+                      className={isImageLoading ? 'invisible' : 'visible'}
+                    >
+                      <Image
+                        src={currentAlbumSrc || ''}
+                        alt={media.title}
+                        width={1920}
+                        height={1080}
+                        className="w-auto h-auto max-h-[65vh] sm:max-h-[75vh] max-w-full mx-auto object-contain rounded-lg"
+                        quality={85}
+                        priority
+                        sizes="100vw"
+                        onLoad={() => setIsImageLoading(false)}
+                      />
+                    </motion.div>
+
+                    {/* Album Counter Badge - Only show when not loading */}
+                    {isAlbum && !isImageLoading && (
+                      <div className="absolute top-3 left-3 px-3 py-1.5 bg-black/60 rounded-full z-30">
+                        <span className="text-sm text-white font-medium">
+                          {albumIndex + 1} / {media.album_photos!.length}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Desktop Right Arrow */}
+                  {isAlbum && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAlbumNavigate('next');
+                      }}
+                      className="hidden sm:flex absolute right-0 sm:-right-16 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30 items-center justify-center"
+                    >
+                      <ChevronRightIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+                    </button>
+                  )}
+                  {!isAlbum && onNavigate && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setIsImageLoading(true);
                         onNavigate('left');
                       }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30"
+                      className="hidden sm:flex absolute right-0 sm:-right-16 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30 items-center justify-center"
                     >
                       <ChevronRightIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
                     </button>
-                  </>
+                  )}
+                </div>
+
+                {/* Mobile Navigation - Directly Below Image (only show when not loading) */}
+                {hasNavigation && !isImageLoading && (
+                  <div className="sm:hidden flex justify-center items-center gap-4 mt-4">
+                    {isAlbum ? (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAlbumNavigate('prev');
+                          }}
+                          className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20"
+                        >
+                          <ChevronLeftIcon className="w-5 h-5 text-white" />
+                        </button>
+                        
+                        {/* Album Dots Indicator */}
+                        <div className="flex items-center gap-1.5 px-2">
+                          {media.album_photos!.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAlbumIndex(idx);
+                              }}
+                              className={`rounded-full transition-all ${
+                                idx === albumIndex 
+                                  ? 'bg-white w-5 h-1.5' 
+                                  : 'bg-white/40 hover:bg-white/60 w-1.5 h-1.5'
+                              }`}
+                            />
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAlbumNavigate('next');
+                          }}
+                          className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20"
+                        >
+                          <ChevronRightIcon className="w-5 h-5 text-white" />
+                        </button>
+                      </>
+                    ) : onNavigate ? (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsImageLoading(true);
+                            onNavigate('right');
+                          }}
+                          className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20"
+                        >
+                          <ChevronLeftIcon className="w-5 h-5 text-white" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsImageLoading(true);
+                            onNavigate('left');
+                          }}
+                          className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20"
+                        >
+                          <ChevronRightIcon className="w-5 h-5 text-white" />
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
                 )}
 
-                <button
-                  onClick={onClose}
-                  className="absolute top-4 right-4 p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30"
-                >
-                  <XMarkIcon className="w-6 h-6 text-white/90 group-hover:text-white" />
-                </button>
+                {/* Desktop Album Dots (only show when not loading) */}
+                {isAlbum && !isImageLoading && (
+                  <div className="hidden sm:flex justify-center gap-2 mt-4">
+                    {media.album_photos!.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAlbumIndex(idx);
+                        }}
+                        className={`rounded-full transition-all ${
+                          idx === albumIndex 
+                            ? 'bg-white w-6 h-2.5' 
+                            : 'bg-white/50 hover:bg-white/75 w-2.5 h-2.5'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
 
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent z-30">
+                {/* Title and Date - Below Navigation (only show when not loading) */}
+                <div className={`mt-4 text-center w-full px-4 transition-opacity ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}>
                   <h3 className="text-lg font-semibold text-white drop-shadow-lg mb-1">
                     {media.title}
                   </h3>
                   {media.date && (
-                    <p className="text-sm text-white/90 drop-shadow-lg">
+                    <p className="text-sm text-white/80 drop-shadow-lg">
                       {new Date(media.date).toLocaleDateString('id-ID', {
                         year: 'numeric',
                         month: 'long',
@@ -201,8 +298,9 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                     </p>
                   )}
                 </div>
-              </div>
+              </>
             ) : (
+              /* Video Section */
               <div className="relative w-full">
                 <video
                   ref={videoRef}
@@ -210,25 +308,25 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                   controls
                   playsInline
                   autoPlay
-                  className="w-full h-auto max-h-[75vh] object-contain rounded-lg mx-auto"
+                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg mx-auto"
                   preload="metadata"
                 >
                   Your browser does not support the video tag.
                 </video>
 
-                <button
-                  onClick={onClose}
-                  className="absolute top-4 right-4 p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm group z-30"
-                >
-                  <XMarkIcon className="w-6 h-6 text-white/90 group-hover:text-white" />
-                </button>
+                {error && (
+                  <div className="mt-4 text-center bg-red-500/80 text-white py-2 px-4 rounded">
+                    {error}
+                  </div>
+                )}
 
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+                {/* Title and Date for Video */}
+                <div className="mt-4 text-center w-full px-4">
                   <h3 className="text-lg font-semibold text-white drop-shadow-lg mb-1">
                     {media.title}
                   </h3>
                   {media.date && (
-                    <p className="text-sm text-white/90 drop-shadow-lg">
+                    <p className="text-sm text-white/80 drop-shadow-lg">
                       {new Date(media.date).toLocaleDateString('id-ID', {
                         year: 'numeric',
                         month: 'long',
@@ -237,12 +335,6 @@ export function MediaViewer({ isOpen, onClose, media, onNavigate }: MediaViewerP
                     </p>
                   )}
                 </div>
-
-                {error && (
-                  <div className="absolute bottom-24 left-0 right-0 text-center bg-red-500/80 text-white py-2 px-4 rounded">
-                    {error}
-                  </div>
-                )}
               </div>
             )}
           </motion.div>
