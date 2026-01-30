@@ -360,7 +360,7 @@ export default function Home() {
               >
                 <div className="relative">
                   <motion.h1 
-                    className="text-[80px] font-black leading-tight tracking-tight"
+                    className="text-[48px] sm:text-[60px] md:text-[70px] lg:text-[80px] font-black leading-tight tracking-tight"
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4, duration: 0.8 }}
